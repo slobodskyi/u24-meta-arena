@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>U24 Meta Arena — Step-by-Step AI Battle</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; color: #333; }
+    h1 { margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 24px; font-size: 14px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: inherit; }
+    textarea { min-height: 140px; resize: vertical; }
+    .field { margin-bottom: 16px; }
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+    button { background: #4285f4; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; font-size: 15px; cursor: pointer; }
+    button:hover { background: #3367d6; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-green { background: #34a853; }
+    .btn-green:hover { background: #2d9249; }
+    .btn-sm { padding: 8px 16px; font-size: 13px; }
+    .error { color: #d93025; margin-top: 12px; }
+    details { margin-bottom: 12px; }
+    details summary { cursor: pointer; font-weight: 600; color: #4285f4; font-size: 14px; margin-bottom: 8px; }
+    details textarea { min-height: 200px; font-size: 12px; line-height: 1.5; }
+
+    .step { background: #fff; border-radius: 8px; padding: 20px; margin-top: 20px; display: none; }
+    .step h2 { margin-bottom: 4px; font-size: 16px; }
+    .step .step-desc { color: #666; font-size: 13px; margin-bottom: 12px; }
+    .step-num { display: inline-block; background: #4285f4; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 8px; }
+    .step-num.done { background: #34a853; }
+    .step-num.active { background: #ea8600; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ccc; border-top-color: #4285f4; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Arena cards */
+    .arena-cards { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+    .arena-card { flex: 1; min-width: 280px; border: 2px solid #e0e0e0; border-radius: 10px; padding: 16px; cursor: pointer; transition: all .15s; background: #fff; }
+    .arena-card:hover { border-color: #4285f4; box-shadow: 0 2px 8px rgba(66,133,244,.15); }
+    .arena-card.selected { border-color: #34a853; background: #e8f5e9; }
+    .arena-card.revealed { cursor: default; }
+    .arena-card .card-label { font-weight: 700; color: #666; margin-bottom: 10px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .arena-card .card-label .winner-badge { background: #34a853; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .arena-card .reveal-label { font-weight: 700; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e0e0e0; font-size: 13px; }
+    .reveal-label.gemini { color: #4285f4; }
+    .reveal-label.openai { color: #10a37f; }
+    .reveal-label.claude { color: #cc785c; }
+
+    /* Horizontal meta cards - stacked vertically */
+    .arena-cards-horizontal { display: block; margin-top: 12px; }
+    .arena-card-horizontal { display: block; width: 100%; border: 2px solid #e0e0e0; border-radius: 10px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all .15s; background: #fff; }
+    .arena-card-horizontal:last-child { margin-bottom: 0; }
+    .arena-card-horizontal:hover { border-color: #4285f4; box-shadow: 0 2px 8px rgba(66,133,244,.15); }
+    .arena-card-horizontal.selected { border-color: #34a853; background: #e8f5e9; }
+    .arena-card-horizontal.revealed { cursor: default; }
+    .arena-card-horizontal .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .arena-card-horizontal .card-label { font-weight: 700; color: #666; font-size: 14px; }
+    .arena-card-horizontal .winner-badge { background: #34a853; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 11px; }
+    .arena-card-horizontal .meta-pairs { display: flex; gap: 16px; flex-wrap: nowrap; }
+    .arena-card-horizontal .meta-pair { flex: 1; min-width: 0; padding: 12px; background: #f8f9fa; border-radius: 6px; }
+    .arena-card-horizontal .reveal-label { font-weight: 700; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e0e0e0; font-size: 13px; }
+
+    /* Keywords display */
+    .kw-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .kw-tag { background: #e8eaf6; padding: 4px 10px; border-radius: 4px; font-size: 13px; font-family: monospace; }
+
+    /* Meta card */
+    .meta-variant { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+    .meta-variant:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .meta-variant-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+    .meta-variant-label.seo { color: #4285f4; }
+    .meta-variant-label.ai { color: #9c27b0; }
+    .meta-variant-label.discover { color: #ff6d00; }
+    .meta-title { font-size: 15px; font-weight: 700; color: #1a0dab; }
+    .meta-desc { font-size: 13px; color: #4d5156; margin-top: 2px; }
+    .meta-chars { font-size: 11px; color: #888; margin-top: 4px; }
+    .char-warn { color: #d93025; font-weight: 600; }
+
+    /* Keyword table */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f8f9fa; font-weight: 600; }
+    tr.best { background: #e8f5e9; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge-low { background: #e8f5e9; color: #2e7d32; }
+    .badge-med { background: #fff3e0; color: #e65100; }
+    .badge-high { background: #fce4ec; color: #c62828; }
+
+    /* Stats */
+    .stats-panel { background: #fff; padding: 16px; border-radius: 8px; margin-top: 20px; }
+    .stats-bar { display: flex; height: 24px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .stats-bar div { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 600; min-width: 40px; }
+    .stats-bar .gemini { background: #4285f4; }
+    .stats-bar .openai { background: #10a37f; }
+    .stats-bar .claude { background: #cc785c; }
+    .stats-row { display: flex; gap: 20px; font-size: 13px; margin-top: 8px; flex-wrap: wrap; }
+    .stats-row span { display: flex; align-items: center; gap: 6px; }
+    .stats-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    .api-keys-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .api-keys-row .field { flex: 1; min-width: 200px; }
+    .api-keys-row input { font-size: 12px; }
+
+    .arena-actions { margin-top: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .info-text { color: #888; font-size: 13px; }
+    .success-text { color: #34a853; font-weight: 600; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>United24 Media — Meta Arena</h1>
+  <p class="subtitle">Step-by-step AI battle: Keywords → DataForSEO → Meta Generation. Vote at each stage!</p>
+
+  <!-- API keys hardcoded in JS -->
+
+  <div class="field">
+    <label>Article Text</label>
+    <textarea id="content" placeholder="Paste your full article text here..."></textarea>
+  </div>
+
+  <div class="row">
+    <div class="field"><input type="text" id="lang" placeholder="English" value="English"></div>
+    <div class="field"><input type="text" id="location" placeholder="United States" value="United States"></div>
+  </div>
+
+  <details>
+    <summary>Edit Keyword Extraction Prompt</summary>
+    <textarea id="kwPrompt">You are an SEO keyword research specialist. Extract 5-8 SHORT SEED KEYWORDS to check search volume via API.
+
+## Rules
+- 1-3 words ONLY (shorter = better)
+- CORE TOPICS, not full phrases
+- What would an ENGLISH-SPEAKING reader Google?
+- Include: weapon names, country names, military terms, proper nouns
+- Lowercase, English only, no articles (a, an, the)
+
+## Output
+JSON array only. No markdown, no explanation.
+["keyword one", "keyword two", "keyword three"]</textarea>
+  </details>
+
+  <details>
+    <summary>Edit Meta Generation Prompt</summary>
+    <textarea id="metaPrompt"># United24 Media Meta Generator
+
+You are a Senior SEO Editor for United24 Media, covering the Russia-Ukraine war.
+
+## Brand Voice
+- Use specific numbers ($4B, 71%, 340 drones)
+- Active verbs: Confirms, Reveals, Warns, Liquidates, Strikes
+- NO hyperbolic adjectives, clickbait, or em-dashes in titles
+
+## Generate 3 Title/Description Pairs
+
+Create 3 DIFFERENT meta title and description pairs for this article.
+Each pair should take a different angle or emphasis.
+
+**Title rules:** 45-60 characters. Primary keyword in first 3-4 words.
+**Description rules:** 150-160 characters. Compelling, informative.
+
+## Output Format (STRICT)
+Return ONLY this JSON array with exactly 3 pairs:
+[
+  { "title": "First approach title", "description": "First approach description" },
+  { "title": "Second approach title", "description": "Second approach description" },
+  { "title": "Third approach title", "description": "Third approach description" }
+]</textarea>
+  </details>
+
+  <button id="runBtn" onclick="startArena()">Start Arena Battle</button>
+  <button onclick="showStats()" style="background:#666;margin-left:8px">View Stats</button>
+  <div id="error" class="error"></div>
+
+  <!-- Step 1: Keyword extraction battle -->
+  <div class="step" id="step1">
+    <h2><span class="step-num" id="s1n">1</span> Keyword Extraction Battle</h2>
+    <p class="step-desc">All AIs extract keywords from the article. Pick the best set!</p>
+    <div id="step1out"></div>
+  </div>
+
+  <!-- Step 2: DataForSEO -->
+  <div class="step" id="step2">
+    <h2><span class="step-num" id="s2n">2</span> Keyword Volume Data (DataForSEO)</h2>
+    <p class="step-desc">Getting real search volumes for winning keywords</p>
+    <div id="step2out"></div>
+  </div>
+
+  <!-- Step 3: Meta generation battle -->
+  <div class="step" id="step3">
+    <h2><span class="step-num" id="s3n">3</span> Meta Generation Battle</h2>
+    <p class="step-desc">Each AI generates 3 title/description pairs. Pick the best card!</p>
+    <div id="step3out"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="step" id="statsPanel" style="display:none">
+    <h2>Arena Statistics</h2>
+    <div id="statsContent"></div>
+  </div>
+
+  <script>
+    const CONFIG = {
+      dfsLogin: 'o.slobodskyi@united24media.com',
+      dfsPassword: 'ba67f7fe2afa5afa',
+      geminiKey: 'AIzaSyBRD_wIpexnfz9JGny33MddYv8lTQfx53s',
+      openaiKey: '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',
+      claudeKey: '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',
+      sheetUrl: 'https://script.google.com/macros/s/AKfycbx35I_VnU9QRHVOA3WoXzzqZpDko0lB25vXUll_jutsNOSuipxNZE7X0a3bp9aBtbWIaw/exec'
+    };
+
+    // Generate anonymous user ID (stored in localStorage)
+    function getUserId() {
+      let id = localStorage.getItem('u24_arena_user_id');
+      if (!id) {
+        id = 'user_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('u24_arena_user_id', id);
+      }
+      return id;
+    }
+
+    // State
+    let state = {
+      step: 0,
+      kwResults: {}, // { gemini: [...], openai: [...], claude: [...] }
+      kwShuffleMap: [], // ['gemini', 'claude', 'openai'] shuffled
+      kwVote: null, // 'A', 'B', 'C'
+      kwRevealed: false,
+      winningKeywords: [],
+      kwData: [], // from DataForSEO
+      metaResults: {},
+      metaShuffleMap: [],
+      metaVote: null,
+      metaRevealed: false
+    };
+
+    function show(id) { document.getElementById(id).style.display = 'block'; }
+    function hide(id) { document.getElementById(id).style.display = 'none'; }
+    function setStepState(id, s) {
+      document.getElementById(id).className = 'step-num' + (s === 'active' ? ' active' : s === 'done' ? ' done' : '');
+    }
+
+    // ─── API CALLS ───
+    async function callGemini(prompt, apiKey) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      if (!res.ok) throw new Error('Gemini: ' + (await res.json()).error?.message || res.status);
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+
+    async function callOpenAI(prompt, apiKey) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: prompt }], temperature: 0.7 })
+      });
+      if (!res.ok) throw new Error('OpenAI: ' + (await res.json()).error?.message || res.status);
+      return (await res.json()).choices?.[0]?.message?.content || '';
+    }
+
+    async function callClaude(prompt, apiKey) {
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error('Claude API: ' + (errData.error?.message || `HTTP ${res.status}`));
+        }
+        const data = await res.json();
+        return data.content?.[0]?.text || '';
+      } catch (e) {
+        // Catch network errors (CORS, etc)
+        if (e.message.includes('Claude API:')) throw e;
+        throw new Error('Claude network error: ' + e.message + ' (Check if browser access is enabled in Anthropic console)');
+      }
+    }
+
+    async function dfsPost(endpoint, body) {
+      const res = await fetch('https://api.dataforseo.com/v3/' + endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + btoa(CONFIG.dfsLogin + ':' + CONFIG.dfsPassword)
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('DataForSEO: HTTP ' + res.status);
+      const data = await res.json();
+      if (data.status_code !== 20000) throw new Error('DataForSEO: ' + data.status_message);
+      const task = data.tasks?.[0];
+      if (task?.status_code !== 20000) throw new Error('DataForSEO task: ' + task?.status_message);
+      return task?.result || [];
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function parseJSON(raw, type = 'array') {
+      try {
+        const regex = type === 'array' ? /\[[\s\S]*?\]/ : /\{[\s\S]*\}/;
+        const m = raw.match(regex);
+        if (m) return JSON.parse(m[0]);
+      } catch (_) {}
+      return null;
+    }
+
+    function aiLabel(name) {
+      return name === 'gemini' ? 'Gemini 2.0 Flash' : name === 'openai' ? 'ChatGPT (GPT-4o)' : 'Claude Sonnet';
+    }
+
+    // ─── STATS ───
+    function getStats() {
+      const stored = localStorage.getItem('u24_arena_stats_v2');
+      return stored ? JSON.parse(stored) : {
+        keywords: { gemini: 0, openai: 0, claude: 0, total: 0 },
+        meta: { gemini: 0, openai: 0, claude: 0, total: 0 }
+      };
+    }
+
+    function saveVote(round, winner) {
+      // Save locally
+      const stats = getStats();
+      stats[round][winner]++;
+      stats[round].total++;
+      localStorage.setItem('u24_arena_stats_v2', JSON.stringify(stats));
+
+      // Send to Google Sheets (fire and forget)
+      const articlePreview = document.getElementById('content').value.trim().substring(0, 100);
+      fetch(CONFIG.sheetUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          round: round,
+          winner: winner,
+          userId: getUserId(),
+          articlePreview: articlePreview
+        })
+      }).catch(e => console.error('Sheet save error:', e));
+    }
+
+    async function showStats() {
+      const statsEl = document.getElementById('statsContent');
+      statsEl.innerHTML = '<span class="spinner"></span> Loading global stats...';
+      show('statsPanel');
+
+      // Try to fetch global stats from Google Sheets
+      let globalStats = null;
+      try {
+        const res = await fetch(CONFIG.sheetUrl);
+        if (res.ok) {
+          globalStats = await res.json();
+        }
+      } catch (e) {
+        console.error('Failed to fetch global stats:', e);
+      }
+
+      const localStats = getStats();
+      let html = '';
+
+      // Show global stats if available
+      if (globalStats) {
+        html += '<h3 style="margin:0 0 16px;font-size:15px;color:#4285f4">🌍 Global Stats (All Users)</h3>';
+        for (const [round, label] of [['keywords', 'Keyword Extraction'], ['meta', 'Meta Generation']]) {
+          const s = globalStats[round] || { gemini: 0, openai: 0, claude: 0, total: 0 };
+          const total = s.total || 1;
+          const gPct = Math.round(s.gemini / total * 100);
+          const oPct = Math.round(s.openai / total * 100);
+          const cPct = Math.round(s.claude / total * 100);
+
+          html += `<h4 style="margin:12px 0 6px;font-size:13px;font-weight:600">${label} (${s.total} votes)</h4>
+          <div class="stats-bar">
+            ${gPct > 0 ? `<div class="gemini" style="width:${gPct}%">${gPct}%</div>` : ''}
+            ${oPct > 0 ? `<div class="openai" style="width:${oPct}%">${oPct}%</div>` : ''}
+            ${cPct > 0 ? `<div class="claude" style="width:${cPct}%">${cPct}%</div>` : ''}
+          </div>
+          <div class="stats-row">
+            <span><span class="stats-dot" style="background:#4285f4"></span> Gemini: ${s.gemini}</span>
+            <span><span class="stats-dot" style="background:#10a37f"></span> ChatGPT: ${s.openai}</span>
+            <span><span class="stats-dot" style="background:#cc785c"></span> Claude: ${s.claude}</span>
+          </div>`;
+        }
+        html += '<hr style="margin:20px 0;border:none;border-top:1px solid #e0e0e0">';
+      }
+
+      // Local stats
+      html += '<h3 style="margin:0 0 16px;font-size:15px;color:#666">📱 Your Stats (This Device)</h3>';
+      for (const [round, label] of [['keywords', 'Keyword Extraction'], ['meta', 'Meta Generation']]) {
+        const s = localStats[round];
+        const total = s.total || 1;
+        const gPct = Math.round(s.gemini / total * 100);
+        const oPct = Math.round(s.openai / total * 100);
+        const cPct = Math.round(s.claude / total * 100);
+
+        html += `<h4 style="margin:12px 0 6px;font-size:13px;font-weight:600">${label} (${s.total} votes)</h4>
+        <div class="stats-bar">
+          ${gPct > 0 ? `<div class="gemini" style="width:${gPct}%">${gPct}%</div>` : ''}
+          ${oPct > 0 ? `<div class="openai" style="width:${oPct}%">${oPct}%</div>` : ''}
+          ${cPct > 0 ? `<div class="claude" style="width:${cPct}%">${cPct}%</div>` : ''}
+        </div>
+        <div class="stats-row">
+          <span><span class="stats-dot" style="background:#4285f4"></span> Gemini: ${s.gemini}</span>
+          <span><span class="stats-dot" style="background:#10a37f"></span> ChatGPT: ${s.openai}</span>
+          <span><span class="stats-dot" style="background:#cc785c"></span> Claude: ${s.claude}</span>
+        </div>`;
+      }
+
+      html += `<button onclick="if(confirm('Clear your local stats?')){localStorage.removeItem('u24_arena_stats_v2');showStats()}" style="margin-top:16px;background:#d93025;font-size:12px;padding:8px 16px">Reset Local Stats</button>`;
+      statsEl.innerHTML = html;
+    }
+
+    // ─── STEP 1: KEYWORD BATTLE ───
+    function renderKeywordArena() {
+      const labels = ['A', 'B', 'C'];
+
+      // Show which AIs failed
+      const failedAIs = ['gemini', 'openai', 'claude'].filter(n => !state.kwResults[n] || state.kwResults[n].length === 0);
+      let html = '';
+      if (failedAIs.length > 0) {
+        html += `<div style="background:#fff3e0;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;color:#e65100">
+          <strong>Warning:</strong> ${failedAIs.map(n => aiLabel(n)).join(', ')} failed to return keywords. Check browser console for errors.
+        </div>`;
+      }
+
+      html += '<div class="arena-cards">';
+
+      for (let i = 0; i < state.kwShuffleMap.length; i++) {
+        const aiName = state.kwShuffleMap[i];
+        const kws = state.kwResults[aiName] || [];
+        const label = labels[i];
+        const isSelected = state.kwVote === label;
+        const isWinner = state.kwRevealed && isSelected;
+        const isDuplicate = state.kwShuffleMap.filter(n => n === aiName).length > 1;
+
+        html += `<div class="arena-card${isSelected ? ' selected' : ''}${state.kwRevealed ? ' revealed' : ''}" onclick="selectKw('${label}')">
+          <div class="card-label">
+            Option ${label}
+            ${isWinner ? '<span class="winner-badge">WINNER</span>' : ''}
+          </div>
+          <div class="kw-list">
+            ${kws.length ? kws.map(k => `<span class="kw-tag">${k}</span>`).join('') : '<span style="color:#999">Failed to extract</span>'}
+          </div>
+          ${state.kwRevealed ? `<div class="reveal-label ${aiName}">${aiLabel(aiName)}${isDuplicate ? ' (duplicate)' : ''}</div>` : ''}
+        </div>`;
+      }
+
+      html += '</div>';
+      html += `<div class="arena-actions">
+        ${!state.kwRevealed ? `<button onclick="confirmKwVote()" class="btn-green" ${!state.kwVote ? 'disabled' : ''}>Confirm & Continue</button>
+        <span class="info-text">Select your preferred keyword set</span>` :
+        `<span class="success-text">Winner: ${aiLabel(state.kwShuffleMap[labels.indexOf(state.kwVote)])} — Proceeding with their keywords...</span>`}
+      </div>`;
+
+      document.getElementById('step1out').innerHTML = html;
+    }
+
+    function selectKw(label) {
+      if (state.kwRevealed) return;
+      state.kwVote = label;
+      renderKeywordArena();
+    }
+
+    async function confirmKwVote() {
+      if (!state.kwVote || state.kwRevealed) return;
+      state.kwRevealed = true;
+
+      const labels = ['A', 'B', 'C'];
+      const winnerAI = state.kwShuffleMap[labels.indexOf(state.kwVote)];
+      state.winningKeywords = state.kwResults[winnerAI] || [];
+      saveVote('keywords', winnerAI);
+
+      renderKeywordArena();
+      setStepState('s1n', 'done');
+
+      // Proceed to Step 2
+      await runStep2();
+    }
+
+    // ─── STEP 2: DATAFORSEO ───
+    async function runStep2() {
+      show('step2');
+      setStepState('s2n', 'active');
+      const out = document.getElementById('step2out');
+      out.innerHTML = `<span class="spinner"></span> Getting volume data for: ${state.winningKeywords.join(', ')}...`;
+
+      const lang = document.getElementById('lang').value.trim();
+      const location = document.getElementById('location').value.trim();
+
+      try {
+        // Get Google suggestions
+        let allKw = [];
+        try {
+          const suggestions = await dfsPost('keywords_data/google_ads/keywords_for_keywords/live', [{
+            keywords: state.winningKeywords,
+            language_name: lang || 'English',
+            location_name: location || 'United States',
+            sort_by: 'search_volume'
+          }]);
+          allKw = suggestions.slice(0, 15).map(r => ({
+            keyword: r.keyword,
+            search_volume: r.search_volume,
+            competition: r.competition,
+            cpc: r.cpc
+          }));
+        } catch (e) {
+          console.error('Suggestions failed:', e);
+        }
+
+        // Get seed volumes
+        try {
+          const seeds = await dfsPost('keywords_data/google_ads/search_volume/live', [{
+            keywords: state.winningKeywords,
+            language_name: lang || 'English',
+            location_name: location || 'United States'
+          }]);
+          for (const r of seeds) {
+            if (!allKw.find(k => k.keyword.toLowerCase() === r.keyword.toLowerCase())) {
+              allKw.unshift({ keyword: r.keyword, search_volume: r.search_volume, competition: r.competition, cpc: r.cpc });
+            }
+          }
+        } catch (e) {
+          console.error('Seed volume failed:', e);
+        }
+
+        allKw.sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
+        state.kwData = allKw;
+
+        if (allKw.length) {
+          let tableHtml = `<table><tr><th>Keyword</th><th>Volume</th><th>Competition</th><th>CPC</th></tr>`;
+          for (const kw of allKw.slice(0, 12)) {
+            const comp = (kw.competition || '').toUpperCase();
+            const badge = comp === 'LOW' ? 'badge-low' : comp === 'MEDIUM' ? 'badge-med' : 'badge-high';
+            tableHtml += `<tr><td>${kw.keyword}</td><td>${(kw.search_volume || 0).toLocaleString()}</td><td><span class="badge ${badge}">${kw.competition || '?'}</span></td><td>$${(kw.cpc || 0).toFixed(2)}</td></tr>`;
+          }
+          tableHtml += '</table>';
+          out.innerHTML = tableHtml;
+        } else {
+          out.innerHTML = '<p style="color:#888">No volume data available. Proceeding with keywords only.</p>';
+        }
+
+        setStepState('s2n', 'done');
+        await runStep3();
+
+      } catch (e) {
+        out.innerHTML = `<div class="error">${e.message}</div>`;
+        setStepState('s2n', 'done');
+      }
+    }
+
+    // ─── STEP 3: META BATTLE ───
+    async function runStep3() {
+      show('step3');
+      setStepState('s3n', 'active');
+      const out = document.getElementById('step3out');
+      out.innerHTML = '<span class="spinner"></span> All AIs generating meta titles & descriptions...';
+
+      const content = document.getElementById('content').value.trim();
+      const metaPrompt = document.getElementById('metaPrompt').value.trim();
+      const geminiKey = CONFIG.geminiKey;
+      const openaiKey = CONFIG.openaiKey;
+      const claudeKey = CONFIG.claudeKey;
+
+      // Build keyword context
+      let kwContext = `## Keywords to use:\n${state.winningKeywords.map(k => `- "${k}"`).join('\n')}`;
+      if (state.kwData.length) {
+        const top5 = state.kwData.slice(0, 5);
+        kwContext += `\n\n## Search Volume Data:\n${top5.map(k => `- "${k.keyword}" — ${k.search_volume?.toLocaleString() || '?'} monthly searches`).join('\n')}`;
+        kwContext += `\n\nPRIMARY keyword (highest volume): "${top5[0].keyword}"`;
+      }
+
+      const fullPrompt = `${metaPrompt}\n\n${kwContext}\n\n## Article:\n${content.substring(0, 4000)}`;
+
+      // Call all 3 AIs in parallel
+      const [geminiRaw, openaiRaw, claudeRaw] = await Promise.all([
+        callGemini(fullPrompt, geminiKey).catch(e => ({ error: e.message })),
+        callOpenAI(fullPrompt, openaiKey).catch(e => ({ error: e.message })),
+        callClaude(fullPrompt, claudeKey).catch(e => ({ error: e.message }))
+      ]);
+
+      console.log('Meta raw results:', { geminiRaw, openaiRaw, claudeRaw });
+
+      state.metaResults = {};
+      for (const [name, raw] of [['gemini', geminiRaw], ['openai', openaiRaw], ['claude', claudeRaw]]) {
+        if (typeof raw === 'object' && raw.error) {
+          state.metaResults[name] = { error: raw.error };
+        } else {
+          // Try to parse as array first (new format), then object (old format)
+          let parsed = parseJSON(raw, 'array');
+          if (!parsed || !Array.isArray(parsed)) {
+            parsed = parseJSON(raw, 'object');
+            // Convert old format to array if needed
+            if (parsed && !Array.isArray(parsed)) {
+              parsed = [
+                parsed.seo || { title: '', description: '' },
+                parsed.ai_overview || { title: '', description: '' },
+                parsed.discover || { title: '', description: '' }
+              ].filter(p => p.title);
+            }
+          }
+          state.metaResults[name] = parsed && parsed.length ? parsed : { error: 'Failed to parse' };
+        }
+      }
+
+      const activeAIs = ['gemini', 'openai', 'claude'].filter(n => Array.isArray(state.metaResults[n]));
+      if (activeAIs.length < 2) {
+        out.innerHTML = `<div class="error">Need at least 2 working AIs. Errors: ${JSON.stringify(state.metaResults)}</div>`;
+        return;
+      }
+
+      while (activeAIs.length < 3) activeAIs.push(activeAIs[0]);
+      state.metaShuffleMap = shuffle(activeAIs);
+
+      renderMetaArena();
+      setStepState('s3n', 'done');
+    }
+
+    function renderMetaArena() {
+      const labels = ['A', 'B', 'C'];
+
+      // Show which AIs failed
+      const failedAIs = ['gemini', 'openai', 'claude'].filter(n => !Array.isArray(state.metaResults[n]));
+      let html = '';
+      if (failedAIs.length > 0) {
+        html += `<div style="background:#fff3e0;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;color:#e65100">
+          <strong>Warning:</strong> ${failedAIs.map(n => aiLabel(n)).join(', ')} failed. Check browser console.
+        </div>`;
+      }
+
+      html += '<div class="arena-cards-horizontal">';
+
+      for (let i = 0; i < state.metaShuffleMap.length; i++) {
+        const aiName = state.metaShuffleMap[i];
+        const meta = state.metaResults[aiName];
+        const label = labels[i];
+        const isSelected = state.metaVote === label;
+        const isWinner = state.metaRevealed && isSelected;
+        const isDuplicate = state.metaShuffleMap.filter(n => n === aiName).length > 1;
+
+        html += `<div class="arena-card-horizontal${isSelected ? ' selected' : ''}${state.metaRevealed ? ' revealed' : ''}" onclick="selectMeta('${label}')">
+          <div class="card-header">
+            <span class="card-label">Option ${label}</span>
+            ${isWinner ? '<span class="winner-badge">WINNER</span>' : ''}
+          </div>`;
+
+        if (meta.error) {
+          html += `<div style="color:#d93025;padding:20px 0">${meta.error}</div>`;
+        } else if (Array.isArray(meta)) {
+          html += '<div class="meta-pairs">';
+          meta.forEach((pair, idx) => {
+            const tLen = pair.title?.length || 0;
+            const dLen = pair.description?.length || 0;
+            const tWarn = tLen < 45 || tLen > 60;
+            const dWarn = dLen < 150 || dLen > 160;
+
+            html += `<div class="meta-pair">
+              <div class="meta-variant-label" style="color:#666;margin-bottom:6px">Pair ${idx + 1}</div>
+              <div class="meta-title">${pair.title || '—'}</div>
+              <div class="meta-desc">${pair.description || '—'}</div>
+              <div class="meta-chars">
+                <span class="${tWarn ? 'char-warn' : ''}">${tLen}c</span> ·
+                <span class="${dWarn ? 'char-warn' : ''}">${dLen}c</span>
+              </div>
+            </div>`;
+          });
+          html += '</div>';
+        } else {
+          html += `<div style="color:#999;padding:20px 0">Invalid format</div>`;
+        }
+
+        html += state.metaRevealed ? `<div class="reveal-label ${aiName}">${aiLabel(aiName)}${isDuplicate ? ' (duplicate)' : ''}</div>` : '';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      html += `<div class="arena-actions">
+        ${!state.metaRevealed ? `<button onclick="confirmMetaVote()" class="btn-green" ${!state.metaVote ? 'disabled' : ''}>Confirm Winner</button>
+        <span class="info-text">Select the best card with 3 title/description pairs</span>` :
+        `<span class="success-text">Winner: ${aiLabel(state.metaShuffleMap[labels.indexOf(state.metaVote)])}!</span>
+        <button onclick="showStats()" class="btn-sm" style="background:#666">View Stats</button>`}
+      </div>`;
+
+      document.getElementById('step3out').innerHTML = html;
+    }
+
+    function selectMeta(label) {
+      if (state.metaRevealed) return;
+      state.metaVote = label;
+      renderMetaArena();
+    }
+
+    function confirmMetaVote() {
+      if (!state.metaVote || state.metaRevealed) return;
+      state.metaRevealed = true;
+
+      const labels = ['A', 'B', 'C'];
+      const winnerAI = state.metaShuffleMap[labels.indexOf(state.metaVote)];
+      saveVote('meta', winnerAI);
+
+      renderMetaArena();
+    }
+
+    // ─── MAIN START ───
+    async function startArena() {
+      const content = document.getElementById('content').value.trim();
+      const geminiKey = CONFIG.geminiKey;
+      const openaiKey = CONFIG.openaiKey;
+      const claudeKey = CONFIG.claudeKey;
+      const kwPrompt = document.getElementById('kwPrompt').value.trim();
+      const errorEl = document.getElementById('error');
+      const btn = document.getElementById('runBtn');
+
+      errorEl.textContent = '';
+      if (!content) { errorEl.textContent = 'Article text required.'; return; }
+
+      // Reset state
+      state = {
+        step: 1,
+        kwResults: {},
+        kwShuffleMap: [],
+        kwVote: null,
+        kwRevealed: false,
+        winningKeywords: [],
+        kwData: [],
+        metaResults: {},
+        metaShuffleMap: [],
+        metaVote: null,
+        metaRevealed: false
+      };
+      hide('step2');
+      hide('step3');
+      hide('statsPanel');
+
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+
+      try {
+        // Step 1: All AIs extract keywords
+        show('step1');
+        setStepState('s1n', 'active');
+        document.getElementById('step1out').innerHTML = '<span class="spinner"></span> All AIs extracting keywords in parallel...';
+
+        const fullPrompt = `${kwPrompt}\n\n## Article:\n${content.substring(0, 4000)}`;
+
+        // Call all 3 AIs in parallel
+        const [geminiRaw, openaiRaw, claudeRaw] = await Promise.all([
+          callGemini(fullPrompt, geminiKey).catch(e => ({ error: e.message })),
+          callOpenAI(fullPrompt, openaiKey).catch(e => ({ error: e.message })),
+          callClaude(fullPrompt, claudeKey).catch(e => ({ error: e.message }))
+        ]);
+
+        console.log('Keyword raw results:', { geminiRaw, openaiRaw, claudeRaw });
+
+        // Parse each result
+        for (const [name, raw] of [['gemini', geminiRaw], ['openai', openaiRaw], ['claude', claudeRaw]]) {
+          if (typeof raw === 'object' && raw.error) {
+            state.kwResults[name] = [];
+            console.error(`${name} error:`, raw.error);
+          } else {
+            let kws = parseJSON(raw, 'array') || [];
+            kws = kws.map(k => typeof k === 'object' ? k.keyword : String(k)).filter(Boolean);
+            state.kwResults[name] = kws;
+          }
+        }
+
+        const activeAIs = ['gemini', 'openai', 'claude'].filter(n => state.kwResults[n].length > 0);
+        if (activeAIs.length < 2) {
+          throw new Error('Need at least 2 AIs with valid keyword results. Check console for errors.');
+        }
+
+        while (activeAIs.length < 3) activeAIs.push(activeAIs[0]);
+        state.kwShuffleMap = shuffle(activeAIs);
+
+        renderKeywordArena();
+
+      } catch (e) {
+        errorEl.textContent = e.message;
+        console.error('Arena error:', e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Start Arena Battle';
+      }
+    }
+  </script>
+</body>
+</html>
