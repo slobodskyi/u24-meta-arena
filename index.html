@@ -120,10 +120,6 @@
     <textarea id="content" placeholder="Paste your full article text here..."></textarea>
   </div>
 
-  <div class="row">
-    <div class="field"><input type="text" id="lang" placeholder="English" value="English"></div>
-    <div class="field"><input type="text" id="location" placeholder="United States" value="United States"></div>
-  </div>
 
   <details>
     <summary>Edit Keyword Extraction Prompt</summary>
@@ -473,8 +469,8 @@ Return ONLY this JSON array with exactly 3 pairs:
       const out = document.getElementById('step2out');
       out.innerHTML = `<span class="spinner"></span> Getting volume data for: ${state.winningKeywords.join(', ')}...`;
 
-      const lang = document.getElementById('lang').value.trim();
-      const location = document.getElementById('location').value.trim();
+      const lang = 'English';
+      const location = 'United States';
 
       try {
         // Get Google suggestions
