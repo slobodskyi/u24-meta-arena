@@ -202,11 +202,9 @@ Return ONLY this JSON array with exactly 3 pairs:
 
   <script>
     const CONFIG = {
+      proxyUrl: 'https://wild-forest-71d3.slobodskyi.workers.dev/',
       dfsLogin: 'o.slobodskyi@united24media.com',
       dfsPassword: 'ba67f7fe2afa5afa',
-      geminiKey: 'AIzaSyBRD_wIpexnfz9JGny33MddYv8lTQfx53s',
-      openaiKey: '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',
-      claudeKey: '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',
       sheetUrl: 'https://script.google.com/macros/s/AKfycbx35I_VnU9QRHVOA3WoXzzqZpDko0lB25vXUll_jutsNOSuipxNZE7X0a3bp9aBtbWIaw/exec'
     };
 
@@ -241,52 +239,25 @@ Return ONLY this JSON array with exactly 3 pairs:
       document.getElementById(id).className = 'step-num' + (s === 'active' ? ' active' : s === 'done' ? ' done' : '');
     }
 
-    // ─── API CALLS ───
-    async function callGemini(prompt, apiKey) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+    // ─── API CALLS via Cloudflare Worker Proxy ───
+    async function callAI(service, prompt) {
+      const res = await fetch(CONFIG.proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        body: JSON.stringify({ service, prompt })
       });
-      if (!res.ok) throw new Error('Gemini: ' + (await res.json()).error?.message || res.status);
-      const data = await res.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
-
-    async function callOpenAI(prompt, apiKey) {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: prompt }], temperature: 0.7 })
-      });
-      if (!res.ok) throw new Error('OpenAI: ' + (await res.json()).error?.message || res.status);
-      return (await res.json()).choices?.[0]?.message?.content || '';
-    }
-
-    async function callClaude(prompt, apiKey) {
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
-          body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] })
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error('Claude API: ' + (errData.error?.message || `HTTP ${res.status}`));
-        }
-        const data = await res.json();
-        return data.content?.[0]?.text || '';
-      } catch (e) {
-        // Catch network errors (CORS, etc)
-        if (e.message.includes('Claude API:')) throw e;
-        throw new Error('Claude network error: ' + e.message + ' (Check if browser access is enabled in Anthropic console)');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(`${service}: ${err.error || res.status}`);
       }
+      const data = await res.json();
+      if (data.error) throw new Error(`${service}: ${data.error}`);
+      return data.text || '';
     }
+
+    async function callGemini(prompt) { return callAI('gemini', prompt); }
+    async function callOpenAI(prompt) { return callAI('openai', prompt); }
+    async function callClaude(prompt) { return callAI('claude', prompt); }
 
     async function dfsPost(endpoint, body) {
       const res = await fetch('https://api.dataforseo.com/v3/' + endpoint, {
@@ -575,9 +546,6 @@ Return ONLY this JSON array with exactly 3 pairs:
 
       const content = document.getElementById('content').value.trim();
       const metaPrompt = document.getElementById('metaPrompt').value.trim();
-      const geminiKey = CONFIG.geminiKey;
-      const openaiKey = CONFIG.openaiKey;
-      const claudeKey = CONFIG.claudeKey;
 
       // Build keyword context
       let kwContext = `## Keywords to use:\n${state.winningKeywords.map(k => `- "${k}"`).join('\n')}`;
@@ -589,11 +557,11 @@ Return ONLY this JSON array with exactly 3 pairs:
 
       const fullPrompt = `${metaPrompt}\n\n${kwContext}\n\n## Article:\n${content.substring(0, 4000)}`;
 
-      // Call all 3 AIs in parallel
+      // Call all 3 AIs in parallel via proxy
       const [geminiRaw, openaiRaw, claudeRaw] = await Promise.all([
-        callGemini(fullPrompt, geminiKey).catch(e => ({ error: e.message })),
-        callOpenAI(fullPrompt, openaiKey).catch(e => ({ error: e.message })),
-        callClaude(fullPrompt, claudeKey).catch(e => ({ error: e.message }))
+        callGemini(fullPrompt).catch(e => ({ error: e.message })),
+        callOpenAI(fullPrompt).catch(e => ({ error: e.message })),
+        callClaude(fullPrompt).catch(e => ({ error: e.message }))
       ]);
 
       console.log('Meta raw results:', { geminiRaw, openaiRaw, claudeRaw });
@@ -721,9 +689,6 @@ Return ONLY this JSON array with exactly 3 pairs:
     // ─── MAIN START ───
     async function startArena() {
       const content = document.getElementById('content').value.trim();
-      const geminiKey = CONFIG.geminiKey;
-      const openaiKey = CONFIG.openaiKey;
-      const claudeKey = CONFIG.claudeKey;
       const kwPrompt = document.getElementById('kwPrompt').value.trim();
       const errorEl = document.getElementById('error');
       const btn = document.getElementById('runBtn');
@@ -760,11 +725,11 @@ Return ONLY this JSON array with exactly 3 pairs:
 
         const fullPrompt = `${kwPrompt}\n\n## Article:\n${content.substring(0, 4000)}`;
 
-        // Call all 3 AIs in parallel
+        // Call all 3 AIs in parallel via proxy
         const [geminiRaw, openaiRaw, claudeRaw] = await Promise.all([
-          callGemini(fullPrompt, geminiKey).catch(e => ({ error: e.message })),
-          callOpenAI(fullPrompt, openaiKey).catch(e => ({ error: e.message })),
-          callClaude(fullPrompt, claudeKey).catch(e => ({ error: e.message }))
+          callGemini(fullPrompt).catch(e => ({ error: e.message })),
+          callOpenAI(fullPrompt).catch(e => ({ error: e.message })),
+          callClaude(fullPrompt).catch(e => ({ error: e.message }))
         ]);
 
         console.log('Keyword raw results:', { geminiRaw, openaiRaw, claudeRaw });
