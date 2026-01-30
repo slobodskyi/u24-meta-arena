@@ -199,8 +199,6 @@ Return ONLY this JSON array with exactly 3 pairs:
   <script>
     const CONFIG = {
       proxyUrl: 'https://wild-forest-71d3.slobodskyi.workers.dev/',
-      dfsLogin: 'o.slobodskyi@united24media.com',
-      dfsPassword: 'ba67f7fe2afa5afa',
       sheetUrl: 'https://script.google.com/macros/s/AKfycbx35I_VnU9QRHVOA3WoXzzqZpDko0lB25vXUll_jutsNOSuipxNZE7X0a3bp9aBtbWIaw/exec'
     };
 
@@ -256,13 +254,10 @@ Return ONLY this JSON array with exactly 3 pairs:
     async function callClaude(prompt) { return callAI('claude', prompt); }
 
     async function dfsPost(endpoint, body) {
-      const res = await fetch('https://api.dataforseo.com/v3/' + endpoint, {
+      const res = await fetch(CONFIG.proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + btoa(CONFIG.dfsLogin + ':' + CONFIG.dfsPassword)
-        },
-        body: JSON.stringify(body)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service: 'dataforseo', endpoint, data: body })
       });
       if (!res.ok) throw new Error('DataForSEO: HTTP ' + res.status);
       const data = await res.json();
