@@ -370,28 +370,63 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         };
         const uniqueKeywords = dedupe(state.keywords);
 
-        // Get search volumes for all Gemini-extracted keywords
-        const results = await dfsPost('keywords_data/google_ads/search_volume/live', [{
-          keywords: uniqueKeywords,
-          language_name: 'English',
-          location_name: 'United States'
-        }]);
-        allKw = results.map(r => ({
-          keyword: r.keyword,
-          search_volume: r.search_volume,
-          competition: r.competition,
-          cpc: r.cpc
-        }));
+        // Get search volumes for US and UK in parallel
+        const [usResults, ukResults] = await Promise.all([
+          dfsPost('keywords_data/google_ads/search_volume/live', [{
+            keywords: uniqueKeywords,
+            language_name: 'English',
+            location_name: 'United States'
+          }]).catch(e => { console.error('US volume failed:', e); return []; }),
+          dfsPost('keywords_data/google_ads/search_volume/live', [{
+            keywords: uniqueKeywords,
+            language_name: 'English',
+            location_name: 'United Kingdom'
+          }]).catch(e => { console.error('UK volume failed:', e); return []; })
+        ]);
 
-        allKw.sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
+        // Build UK lookup map
+        const ukMap = new Map();
+        ukResults.forEach(r => ukMap.set(r.keyword.toLowerCase(), r));
+
+        // Combine US + UK data
+        const seenKeywords = new Set();
+        for (const r of usResults) {
+          const ukData = ukMap.get(r.keyword.toLowerCase());
+          const usVol = r.search_volume || 0;
+          const ukVol = ukData?.search_volume || 0;
+          allKw.push({
+            keyword: r.keyword,
+            us_volume: usVol,
+            uk_volume: ukVol,
+            total_volume: usVol + ukVol,
+            competition: r.competition,
+            cpc: r.cpc
+          });
+          seenKeywords.add(r.keyword.toLowerCase());
+        }
+        // Add UK-only keywords (if any weren't in US results)
+        for (const r of ukResults) {
+          if (!seenKeywords.has(r.keyword.toLowerCase())) {
+            allKw.push({
+              keyword: r.keyword,
+              us_volume: 0,
+              uk_volume: r.search_volume || 0,
+              total_volume: r.search_volume || 0,
+              competition: r.competition,
+              cpc: r.cpc
+            });
+          }
+        }
+
+        allKw.sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
         state.kwData = allKw;
 
         if (allKw.length) {
-          let tableHtml = `<table><tr><th>Keyword</th><th>Volume</th><th>Competition</th><th>CPC</th></tr>`;
-          for (const kw of allKw.slice(0, 12)) {
+          let tableHtml = `<table><tr><th>Keyword</th><th>US Vol</th><th>UK Vol</th><th>Total</th><th>Competition</th><th>CPC</th></tr>`;
+          for (const kw of allKw.slice(0, 15)) {
             const comp = (kw.competition || '').toUpperCase();
             const badge = comp === 'LOW' ? 'badge-low' : comp === 'MEDIUM' ? 'badge-med' : 'badge-high';
-            tableHtml += `<tr><td>${kw.keyword}</td><td>${(kw.search_volume || 0).toLocaleString()}</td><td><span class="badge ${badge}">${kw.competition || '?'}</span></td><td>$${(kw.cpc || 0).toFixed(2)}</td></tr>`;
+            tableHtml += `<tr><td>${kw.keyword}</td><td>${(kw.us_volume || 0).toLocaleString()}</td><td>${(kw.uk_volume || 0).toLocaleString()}</td><td><strong>${(kw.total_volume || 0).toLocaleString()}</strong></td><td><span class="badge ${badge}">${kw.competition || '?'}</span></td><td>$${(kw.cpc || 0).toFixed(2)}</td></tr>`;
           }
           tableHtml += '</table>';
           out.innerHTML = tableHtml;
@@ -416,11 +451,11 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
 
       const titlePromptTemplate = document.getElementById('titlePrompt').value.trim();
 
-      // Build keyword context
+      // Build keyword context with US+UK combined volumes
       let kwContext = '';
       if (state.kwData.length) {
         const top = state.kwData.slice(0, 8);
-        kwContext = `<keywords>\n${top.map(k => `- "${k.keyword}" — ${(k.search_volume || 0).toLocaleString()} monthly searches`).join('\n')}\n\nPRIMARY keyword (highest volume): "${top[0].keyword}"\n</keywords>`;
+        kwContext = `<keywords>\n${top.map(k => `- "${k.keyword}" — ${(k.total_volume || 0).toLocaleString()} monthly searches (US: ${(k.us_volume || 0).toLocaleString()}, UK: ${(k.uk_volume || 0).toLocaleString()})`).join('\n')}\n\nPRIMARY keyword (highest volume): "${top[0].keyword}"\n</keywords>`;
       } else {
         kwContext = `<keywords>\n${state.keywords.map(k => `- "${k}"`).join('\n')}\n</keywords>`;
       }
@@ -504,8 +539,14 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       const descPromptTemplate = document.getElementById('descPrompt').value.trim();
       const chosenTitle = state.titles[state.selectedTitle];
 
-      // Build keyword list
-      const kwList = state.keywords.join(', ');
+      // Build keyword list with volumes if available
+      let kwList = '';
+      if (state.kwData.length) {
+        const top = state.kwData.slice(0, 8);
+        kwList = top.map(k => `${k.keyword} (${(k.total_volume || 0).toLocaleString()} searches)`).join(', ');
+      } else {
+        kwList = state.keywords.join(', ');
+      }
 
       const fullPrompt = `${descPromptTemplate}\n\n<chosen_title>${chosenTitle}</chosen_title>\n\n<keywords>\n${kwList}\n</keywords>\n\n<article>\n${content.substring(0, 10000)}\n</article>`;
 
