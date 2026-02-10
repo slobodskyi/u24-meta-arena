@@ -94,9 +94,14 @@ Extract seed keywords from the article below for search volume validation via AP
 <instructions>
 1. Read the article and identify its core topics, named entities, and newsworthy elements.
 2. Write a one-sentence analysis of the article's main SEO angle.
-3. Extract 5-8 short seed keywords (1-3 words each) that English-speaking readers would type into Google.
-4. Prioritize: weapon/equipment names, country names, military terms, proper nouns, and specific events.
-5. Use lowercase English only. Omit articles (a, an, the).
+3. Extract 12-15 seed keywords that English-speaking readers would type into Google.
+4. Organize into three tiers:
+   - HEAD TERMS (3-4): Core 1-2 word topics (e.g., "drone strike", "zaporizhzhia")
+   - MID TERMS (4-5): Specific 2-3 word phrases (e.g., "ukraine drone strike", "fp-2 drone")
+   - LONG TAIL (4-6): Detailed 3-5 word queries (e.g., "ukraine fp-2 drone zaporizhzhia", "unmanned aerial systems ukraine war")
+5. Prioritize: weapon/equipment names, country names, military terms, proper nouns, and specific events.
+6. Include common spelling variations and abbreviations if they exist.
+7. Use lowercase English only. Omit articles (a, an, the).
 </instructions>
 
 <output_format>
@@ -108,11 +113,11 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
 </output_format>
 
 <example>
-<input>Article about Ukraine receiving F-16 fighter jets from NATO allies and deploying them against Russian aerial threats</input>
+<input>Article about Ukraine using FP-2 drones to destroy Russian firing positions near Zaporizhzhia, marking a new tactical use of unmanned aerial systems on the front line</input>
 <output>
 {
-  "analysis": "F-16 delivery to Ukraine and its impact on air defense is the primary search angle.",
-  "keywords": ["f-16 ukraine", "fighter jets", "nato aircraft", "air defense", "f-16 delivery", "ukraine air force"]
+  "analysis": "Ukraine's tactical use of FP-2 drones against Russian positions near Zaporizhzhia is the primary search angle.",
+  "keywords": ["drone strike", "zaporizhzhia", "unmanned aerial systems", "ukraine drone strike", "fp-2 drone", "russian positions", "combat drones ukraine", "firing position", "ukraine fp-2 drone zaporizhzhia", "unmanned aerial systems ukraine war", "drone warfare frontline", "ukraine tactical drones 2026"]
 }
 </output>
 </example></textarea>
@@ -349,44 +354,34 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       show('step2');
       setStepState('s2n', 'active');
       const out = document.getElementById('step2out');
-      out.innerHTML = `<span class="spinner"></span> Getting volume data for: ${state.keywords.join(', ')}...`;
+      out.innerHTML = `<span class="spinner"></span> Getting volume data for ${state.keywords.length} keywords...`;
 
       try {
         let allKw = [];
 
-        // Get Google suggestions
-        try {
-          const suggestions = await dfsPost('keywords_data/google_ads/keywords_for_keywords/live', [{
-            keywords: state.keywords,
-            language_name: 'English',
-            location_name: 'United States',
-            sort_by: 'search_volume'
-          }]);
-          allKw = suggestions.slice(0, 15).map(r => ({
-            keyword: r.keyword,
-            search_volume: r.search_volume,
-            competition: r.competition,
-            cpc: r.cpc
-          }));
-        } catch (e) {
-          console.error('Suggestions failed:', e);
-        }
+        // Deduplicate keywords (normalize hyphens/spaces)
+        const dedupe = (keywords) => {
+          const normalized = new Map();
+          keywords.forEach(kw => {
+            const key = kw.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+            if (!normalized.has(key)) normalized.set(key, kw);
+          });
+          return [...normalized.values()];
+        };
+        const uniqueKeywords = dedupe(state.keywords);
 
-        // Get seed volumes
-        try {
-          const seeds = await dfsPost('keywords_data/google_ads/search_volume/live', [{
-            keywords: state.keywords,
-            language_name: 'English',
-            location_name: 'United States'
-          }]);
-          for (const r of seeds) {
-            if (!allKw.find(k => k.keyword.toLowerCase() === r.keyword.toLowerCase())) {
-              allKw.unshift({ keyword: r.keyword, search_volume: r.search_volume, competition: r.competition, cpc: r.cpc });
-            }
-          }
-        } catch (e) {
-          console.error('Seed volume failed:', e);
-        }
+        // Get search volumes for all Gemini-extracted keywords
+        const results = await dfsPost('keywords_data/google_ads/search_volume/live', [{
+          keywords: uniqueKeywords,
+          language_name: 'English',
+          location_name: 'United States'
+        }]);
+        allKw = results.map(r => ({
+          keyword: r.keyword,
+          search_volume: r.search_volume,
+          competition: r.competition,
+          cpc: r.cpc
+        }));
 
         allKw.sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
         state.kwData = allKw;
