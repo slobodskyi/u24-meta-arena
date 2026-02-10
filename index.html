@@ -83,36 +83,108 @@
 
   <details>
     <summary>Edit Keyword Extraction Prompt</summary>
-    <textarea id="kwPrompt">You are an SEO keyword research specialist. Extract 5-8 SHORT SEED KEYWORDS to check search volume via API.
+    <textarea id="kwPrompt"><role>
+You are a senior SEO keyword researcher for an international news organization covering the Russia-Ukraine war.
+</role>
 
-## Rules
-- 1-3 words ONLY (shorter = better)
-- CORE TOPICS, not full phrases
-- What would an ENGLISH-SPEAKING reader Google?
-- Include: weapon names, country names, military terms, proper nouns
-- Lowercase, English only, no articles (a, an, the)
+<task>
+Extract seed keywords from the article below for search volume validation via API.
+</task>
 
-## Output
-JSON array only. No markdown, no explanation.
-["keyword one", "keyword two", "keyword three"]</textarea>
+<instructions>
+1. Read the article and identify its core topics, named entities, and newsworthy elements.
+2. Write a one-sentence analysis of the article's main SEO angle.
+3. Extract 5-8 short seed keywords (1-3 words each) that English-speaking readers would type into Google.
+4. Prioritize: weapon/equipment names, country names, military terms, proper nouns, and specific events.
+5. Use lowercase English only. Omit articles (a, an, the).
+</instructions>
+
+<output_format>
+Respond with valid JSON only. No markdown, no text outside the JSON.
+{
+  "analysis": "One sentence identifying the article's primary search angle",
+  "keywords": ["keyword one", "keyword two", "keyword three"]
+}
+</output_format>
+
+<example>
+<input>Article about Ukraine receiving F-16 fighter jets from NATO allies and deploying them against Russian aerial threats</input>
+<output>
+{
+  "analysis": "F-16 delivery to Ukraine and its impact on air defense is the primary search angle.",
+  "keywords": ["f-16 ukraine", "fighter jets", "nato aircraft", "air defense", "f-16 delivery", "ukraine air force"]
+}
+</output>
+</example></textarea>
   </details>
 
   <details>
-    <summary>Edit Meta Generation Prompt</summary>
-    <textarea id="metaPrompt"># United24 Media Meta Generator
+    <summary>Edit Title Generation Prompt</summary>
+    <textarea id="titlePrompt"><role>
+You are a senior SEO editor for United24 Media, an international news organization covering the Russia-Ukraine war.
+</role>
 
-You are a Senior SEO Editor for United24 Media, covering the Russia-Ukraine war.
+<task>
+Generate 3 meta titles for the article below, each taking a different angle.
+</task>
 
-## Brand Voice
-- Use specific numbers ($4B, 71%, 340 drones)
-- Active verbs: Confirms, Reveals, Warns, Liquidates, Strikes
-- NO hyperbolic adjectives, clickbait, or em-dashes in titles
+<instructions>
+1. Review the article and the validated keyword data below.
+2. Identify the primary keyword (highest search volume).
+3. Generate 3 titles, each using a different structural approach:
+   - One factual/breaking news angle
+   - One analytical/context angle
+   - One question or reader-benefit angle
+4. Place the primary keyword within the first 3-4 words of each title.
+5. Each title should be 8-12 words long (aim for 60-80 characters).
+6. Lead with specific numbers when available ($4B, 71%, 340 drones).
+7. Use strong active verbs: Confirms, Reveals, Warns, Strikes, Deploys.
+8. Write in neutral, factual, AP Style tone. Be authoritative and precise.
+9. After writing each title, estimate its character count.
+</instructions>
 
-## Title rules
-45-60 characters. Primary keyword in first 3-4 words.
+<output_format>
+Respond with valid JSON only. No markdown, no text outside the JSON.
+[
+  { "title": "Your meta title here", "char_count": 68 },
+  { "title": "Your meta title here", "char_count": 72 },
+  { "title": "Your meta title here", "char_count": 65 }
+]
+</output_format></textarea>
+  </details>
 
-## Description rules
-150-160 characters. Compelling, informative.</textarea>
+  <details>
+    <summary>Edit Description Generation Prompt</summary>
+    <textarea id="descPrompt"><role>
+You are a senior SEO editor for United24 Media, an international news organization covering the Russia-Ukraine war.
+</role>
+
+<task>
+Generate 3 meta descriptions for the article below to pair with the chosen title.
+</task>
+
+<instructions>
+1. The user has already selected the meta title shown below.
+2. Generate 3 descriptions, each taking a different angle:
+   - One informational (summarize the key facts)
+   - One analytical (highlight significance or implications)
+   - One engagement-focused (create urgency or curiosity using facts)
+3. Each description should be 1-2 short sentences (aim for 150-160 characters).
+4. Naturally include 1-2 keywords from the keyword list.
+5. Complement the chosen title — expand on it rather than repeating it.
+6. Use specific numbers and data points when available.
+7. Write in neutral, factual, AP Style tone. Be informative and compelling.
+8. After writing each description, estimate its character count.
+</instructions>
+
+<output_format>
+Respond with valid JSON only. No markdown, no text outside the JSON.
+[
+  { "description": "Your meta description here", "char_count": 155 },
+  { "description": "Your meta description here", "char_count": 158 },
+  { "description": "Your meta description here", "char_count": 152 }
+]
+</output_format></textarea>
   </details>
 
   <button id="runBtn" onclick="startGeneration()">Generate Meta</button>
@@ -153,6 +225,7 @@ You are a Senior SEO Editor for United24 Media, covering the Russia-Ukraine war.
 
     // State
     let state = {
+      analysis: '',
       keywords: [],
       kwData: [],
       titles: [],
@@ -216,21 +289,38 @@ You are a Senior SEO Editor for United24 Media, covering the Russia-Ukraine war.
       out.innerHTML = '<span class="spinner"></span> Gemini is extracting keywords...';
 
       const kwPrompt = document.getElementById('kwPrompt').value.trim();
-      const fullPrompt = `${kwPrompt}\n\n## Article:\n${content.substring(0, 4000)}`;
+      const fullPrompt = `${kwPrompt}\n\n<article>\n${content.substring(0, 4000)}\n</article>`;
 
       const raw = await callGemini(fullPrompt);
       console.log('Keyword raw:', raw);
 
-      let kws = parseJSON(raw, 'array') || [];
-      kws = kws.map(k => typeof k === 'object' ? k.keyword : String(k)).filter(Boolean);
+      // Parse {analysis, keywords} object
+      let parsed = parseJSON(raw, 'object');
+      let kws = [];
+      let analysis = '';
+
+      if (parsed && parsed.keywords && Array.isArray(parsed.keywords)) {
+        kws = parsed.keywords.map(k => typeof k === 'object' ? k.keyword : String(k)).filter(Boolean);
+        analysis = parsed.analysis || '';
+      } else {
+        // Fallback: try parsing as plain array
+        kws = parseJSON(raw, 'array') || [];
+        kws = kws.map(k => typeof k === 'object' ? k.keyword : String(k)).filter(Boolean);
+      }
 
       if (kws.length === 0) {
         throw new Error('Gemini failed to extract keywords. Check console.');
       }
 
       state.keywords = kws;
+      state.analysis = analysis;
 
-      out.innerHTML = '<div class="kw-list">' + kws.map(k => `<span class="kw-tag">${k}</span>`).join('') + '</div>';
+      let html = '';
+      if (analysis) {
+        html += `<p style="font-size:13px;color:#555;margin-bottom:8px;font-style:italic">${analysis}</p>`;
+      }
+      html += '<div class="kw-list">' + kws.map(k => `<span class="kw-tag">${k}</span>`).join('') + '</div>';
+      out.innerHTML = html;
       setStepState('s1n', 'done');
     }
 
@@ -309,40 +399,35 @@ You are a Senior SEO Editor for United24 Media, covering the Russia-Ukraine war.
       const out = document.getElementById('step3out');
       out.innerHTML = '<span class="spinner"></span> Gemini is generating SEO titles...';
 
-      const metaPrompt = document.getElementById('metaPrompt').value.trim();
+      const titlePromptTemplate = document.getElementById('titlePrompt').value.trim();
 
       // Build keyword context
-      let kwContext = `## Keywords to use:\n${state.keywords.map(k => `- "${k}"`).join('\n')}`;
+      let kwContext = '';
       if (state.kwData.length) {
-        const top5 = state.kwData.slice(0, 5);
-        kwContext += `\n\n## Search Volume Data:\n${top5.map(k => `- "${k.keyword}" — ${k.search_volume?.toLocaleString() || '?'} monthly searches`).join('\n')}`;
-        kwContext += `\n\nPRIMARY keyword (highest volume): "${top5[0].keyword}"`;
+        const top = state.kwData.slice(0, 8);
+        kwContext = `<keywords>\n${top.map(k => `- "${k.keyword}" — ${(k.search_volume || 0).toLocaleString()} monthly searches`).join('\n')}\n\nPRIMARY keyword (highest volume): "${top[0].keyword}"\n</keywords>`;
+      } else {
+        kwContext = `<keywords>\n${state.keywords.map(k => `- "${k}"`).join('\n')}\n</keywords>`;
       }
 
-      const titlePrompt = `${metaPrompt}
+      const primaryKw = state.kwData.length ? state.kwData[0].keyword : state.keywords[0];
+      const fullPrompt = `${titlePromptTemplate}\n\n${kwContext}\n\n<article>\n${content.substring(0, 4000)}\n</article>`;
 
-## Task
-Generate exactly 3 DIFFERENT SEO titles for this article.
-Each title should take a different angle or emphasis.
-
-${kwContext}
-
-## Article:
-${content.substring(0, 4000)}
-
-## Output Format (STRICT)
-Return ONLY this JSON array with exactly 3 titles:
-["First title option", "Second title option", "Third title option"]`;
-
-      const raw = await callGemini(titlePrompt);
+      const raw = await callGemini(fullPrompt);
       console.log('Title raw:', raw);
 
-      let titles = parseJSON(raw, 'array');
-      if (!titles || !Array.isArray(titles) || titles.length < 3) {
+      let parsed = parseJSON(raw, 'array');
+      if (!parsed || !Array.isArray(parsed) || parsed.length < 3) {
         throw new Error('Gemini failed to generate 3 titles. Check console.');
       }
-      titles = titles.slice(0, 3);
-      state.titles = titles;
+      parsed = parsed.slice(0, 3);
+
+      // Handle both [{title, char_count}] and plain string arrays
+      state.titles = parsed.map(t => typeof t === 'object' ? t.title : String(t)).filter(Boolean);
+
+      if (state.titles.length < 3) {
+        throw new Error('Gemini failed to generate 3 valid titles. Check console.');
+      }
 
       renderTitleCards();
       setStepState('s3n', 'done');
@@ -356,7 +441,7 @@ Return ONLY this JSON array with exactly 3 titles:
         const isSelected = state.selectedTitle === i;
         const isChosen = state.titleConfirmed && isSelected;
         const tLen = title.length;
-        const tWarn = tLen < 45 || tLen > 60;
+        const tWarn = tLen < 50 || tLen > 80;
 
         html += `<div class="option-card${isSelected ? ' selected' : ''}${state.titleConfirmed ? ' confirmed' : ''}" onclick="selectTitle(${i})">
           <div class="option-label">
@@ -402,43 +487,29 @@ Return ONLY this JSON array with exactly 3 titles:
       const out = document.getElementById('step4out');
       out.innerHTML = '<span class="spinner"></span> Gemini is generating SEO descriptions...';
 
-      const metaPrompt = document.getElementById('metaPrompt').value.trim();
+      const descPromptTemplate = document.getElementById('descPrompt').value.trim();
       const chosenTitle = state.titles[state.selectedTitle];
 
-      // Build keyword context
-      let kwContext = `## Keywords to use:\n${state.keywords.map(k => `- "${k}"`).join('\n')}`;
-      if (state.kwData.length) {
-        const top5 = state.kwData.slice(0, 5);
-        kwContext += `\n\n## Search Volume Data:\n${top5.map(k => `- "${k.keyword}" — ${k.search_volume?.toLocaleString() || '?'} monthly searches`).join('\n')}`;
-        kwContext += `\n\nPRIMARY keyword (highest volume): "${top5[0].keyword}"`;
-      }
+      // Build keyword list
+      const kwList = state.keywords.join(', ');
 
-      const descPrompt = `${metaPrompt}
+      const fullPrompt = `${descPromptTemplate}\n\n<chosen_title>${chosenTitle}</chosen_title>\n\n<keywords>\n${kwList}\n</keywords>\n\n<article>\n${content.substring(0, 4000)}\n</article>`;
 
-## Task
-The chosen SEO title is: "${chosenTitle}"
-
-Generate exactly 3 DIFFERENT SEO meta descriptions for this article that complement the title above.
-Each description should take a different angle or emphasis.
-
-${kwContext}
-
-## Article:
-${content.substring(0, 4000)}
-
-## Output Format (STRICT)
-Return ONLY this JSON array with exactly 3 descriptions:
-["First description option", "Second description option", "Third description option"]`;
-
-      const raw = await callGemini(descPrompt);
+      const raw = await callGemini(fullPrompt);
       console.log('Description raw:', raw);
 
-      let descriptions = parseJSON(raw, 'array');
-      if (!descriptions || !Array.isArray(descriptions) || descriptions.length < 3) {
+      let parsed = parseJSON(raw, 'array');
+      if (!parsed || !Array.isArray(parsed) || parsed.length < 3) {
         throw new Error('Gemini failed to generate 3 descriptions. Check console.');
       }
-      descriptions = descriptions.slice(0, 3);
-      state.descriptions = descriptions;
+      parsed = parsed.slice(0, 3);
+
+      // Handle both [{description, char_count}] and plain string arrays
+      state.descriptions = parsed.map(d => typeof d === 'object' ? d.description : String(d)).filter(Boolean);
+
+      if (state.descriptions.length < 3) {
+        throw new Error('Gemini failed to generate 3 valid descriptions. Check console.');
+      }
 
       renderDescCards();
       setStepState('s4n', 'done');
@@ -513,6 +584,7 @@ Return ONLY this JSON array with exactly 3 descriptions:
 
       // Reset state
       state = {
+        analysis: '',
         keywords: [],
         kwData: [],
         titles: [],
