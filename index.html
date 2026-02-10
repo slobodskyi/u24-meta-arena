@@ -129,18 +129,20 @@ Generate 3 meta titles for the article below, each taking a different angle.
 </task>
 
 <instructions>
-1. Review the article and the validated keyword data below.
-2. Identify the primary keyword (highest search volume).
+1. Read the article and identify its SPECIFIC story — what happened, to whom, where, and why it matters.
+2. Review the keyword data below. Use high-volume keywords naturally, but the article's unique angle must drive each title.
 3. Generate 3 titles, each using a different structural approach:
-   - One factual/breaking news angle
-   - One analytical/context angle
-   - One question or reader-benefit angle
-4. Place the primary keyword within the first 3-4 words of each title.
-5. Each title should be 8-12 words long (aim for 60-80 characters).
-6. Lead with specific numbers when available ($4B, 71%, 340 drones).
-7. Use strong active verbs: Confirms, Reveals, Warns, Strikes, Deploys.
-8. Write in neutral, factual, AP Style tone. Be authoritative and precise.
-9. After writing each title, estimate its character count.
+   - One factual/breaking news angle (lead with what happened)
+   - One analytical/context angle (lead with why it matters)
+   - One question or reader-benefit angle (lead with what the reader learns)
+4. Each title must reflect THIS specific article, not a generic topic page.
+5. Integrate the primary keyword naturally — it can appear anywhere in the title, not only at the start.
+6. Each title should be 8-12 words long (aim for 60-80 characters).
+7. Lead with specific numbers when available ($4B, 71%, 340 drones).
+8. Use strong active verbs: Confirms, Reveals, Warns, Strikes, Deploys.
+9. Write in neutral, factual, AP Style tone.
+10. Each title must start with DIFFERENT first words — no repeated openings.
+11. After writing each title, estimate its character count.
 </instructions>
 
 <output_format>
@@ -150,7 +152,25 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
   { "title": "Your meta title here", "char_count": 72 },
   { "title": "Your meta title here", "char_count": 65 }
 ]
-</output_format></textarea>
+</output_format>
+
+<example>
+<keywords>
+- "unmanned aerial systems" — 18,100 monthly searches
+- "zaporizhzhia" — 5,400 monthly searches
+- "ukraine drone strike" — 1,900 monthly searches
+- "fp-2 drone" — 210 monthly searches
+PRIMARY keyword: "unmanned aerial systems"
+</keywords>
+<input>Article about Ukraine using FP-2 drones to destroy Russian firing positions near Zaporizhzhia, marking a new tactical use of unmanned aerial systems on the front line</input>
+<o>
+[
+  { "title": "Ukraine Strikes Russian Positions Near Zaporizhzhia With FP-2 Combat Drones", "char_count": 72 },
+  { "title": "FP-2 Drone Strikes Reveal Shift in Ukraine's Unmanned Aerial Tactics", "char_count": 69 },
+  { "title": "How Ukraine's Drone Strikes Are Reshaping the Battle for Zaporizhzhia", "char_count": 70 }
+]
+</o>
+</example></textarea>
   </details>
 
   <details>
@@ -289,7 +309,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       out.innerHTML = '<span class="spinner"></span> Gemini is extracting keywords...';
 
       const kwPrompt = document.getElementById('kwPrompt').value.trim();
-      const fullPrompt = `${kwPrompt}\n\n<article>\n${content.substring(0, 4000)}\n</article>`;
+      const fullPrompt = `${kwPrompt}\n\n<article>\n${content.substring(0, 10000)}\n</article>`;
 
       const raw = await callGemini(fullPrompt);
       console.log('Keyword raw:', raw);
@@ -410,8 +430,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         kwContext = `<keywords>\n${state.keywords.map(k => `- "${k}"`).join('\n')}\n</keywords>`;
       }
 
-      const primaryKw = state.kwData.length ? state.kwData[0].keyword : state.keywords[0];
-      const fullPrompt = `${titlePromptTemplate}\n\n${kwContext}\n\n<article>\n${content.substring(0, 4000)}\n</article>`;
+      const fullPrompt = `${titlePromptTemplate}\n\n${kwContext}\n\n<article>\n${content.substring(0, 10000)}\n</article>`;
 
       const raw = await callGemini(fullPrompt);
       console.log('Title raw:', raw);
@@ -493,7 +512,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       // Build keyword list
       const kwList = state.keywords.join(', ');
 
-      const fullPrompt = `${descPromptTemplate}\n\n<chosen_title>${chosenTitle}</chosen_title>\n\n<keywords>\n${kwList}\n</keywords>\n\n<article>\n${content.substring(0, 4000)}\n</article>`;
+      const fullPrompt = `${descPromptTemplate}\n\n<chosen_title>${chosenTitle}</chosen_title>\n\n<keywords>\n${kwList}\n</keywords>\n\n<article>\n${content.substring(0, 10000)}\n</article>`;
 
       const raw = await callGemini(fullPrompt);
       console.log('Description raw:', raw);
