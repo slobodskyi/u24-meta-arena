@@ -94,11 +94,11 @@ Extract seed keywords from the article below for search volume validation via AP
 <instructions>
 1. Read the article and identify its core topics, named entities, and newsworthy elements.
 2. Write a one-sentence analysis of the article's main SEO angle.
-3. Extract 8-10 seed keywords that English-speaking readers would type into Google.
+3. Extract 15-20 seed keywords that English-speaking readers would type into Google.
 4. Organize into three tiers:
-   - HEAD TERMS (2-3): Core 1-2 word topics (e.g., "drone strike", "zaporizhzhia")
-   - MID TERMS (3-4): Specific 2-3 word phrases (e.g., "ukraine drone strike", "fp-2 drone")
-   - LONG TAIL (3-4): Detailed 3-5 word queries (e.g., "ukraine fp-2 drone zaporizhzhia", "unmanned aerial systems ukraine war")
+   - HEAD TERMS (4-6): Core 1-2 word topics (e.g., "drone strike", "zaporizhzhia")
+   - MID TERMS (5-7): Specific 2-3 word phrases (e.g., "ukraine drone strike", "fp-2 drone")
+   - LONG TAIL (6-7): Detailed 3-5 word queries (e.g., "ukraine fp-2 drone zaporizhzhia", "unmanned aerial systems ukraine war")
 5. Prioritize: weapon/equipment names, country names, military terms, proper nouns, and specific events.
 6. Include common spelling variations and abbreviations if they exist.
 7. Use lowercase English only. Omit articles (a, an, the).
@@ -117,7 +117,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
 <output>
 {
   "analysis": "Ukraine's tactical use of FP-2 drones against Russian positions near Zaporizhzhia is the primary search angle.",
-  "keywords": ["drone strike", "zaporizhzhia", "unmanned aerial systems", "ukraine drone strike", "fp-2 drone", "russian positions", "combat drones ukraine", "firing position", "ukraine fp-2 drone zaporizhzhia", "unmanned aerial systems ukraine war"]
+  "keywords": ["drone strike", "zaporizhzhia", "ukraine war", "unmanned aerial systems", "fp-2 drone", "ukraine drone strike", "russian positions", "combat drones ukraine", "firing position", "ukraine front line", "drone warfare", "fp-2 combat drone", "zaporizhzhia front line", "ukraine fp-2 drone zaporizhzhia", "unmanned aerial systems ukraine war", "russia ukraine drone attack", "ukrainian military drones"]
 }
 </output>
 </example></textarea>
