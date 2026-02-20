@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>U24 Meta Generator</title>
+  <title>U24 Media Tools</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; color: #333; }
@@ -70,10 +70,52 @@
     .final-result .result-title { font-size: 18px; font-weight: 700; color: #1a0dab; margin-bottom: 4px; }
     .final-result .result-desc { font-size: 14px; color: #4d5156; }
     .final-result .result-chars { font-size: 12px; color: #888; margin-top: 6px; }
+
+    /* Navigation */
+    .app-header { margin-bottom: 24px; }
+    .app-header h1 { margin-bottom: 12px; }
+    .nav-tabs { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; }
+    .nav-tab { padding: 10px 24px; font-size: 14px; font-weight: 600; color: #666; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+    .nav-tab:hover { color: #4285f4; }
+    .nav-tab.active { color: #4285f4; border-bottom-color: #4285f4; }
+
+    /* Page containers */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Chat With AI */
+    .chat-container { background: #fff; border-radius: 8px; display: flex; flex-direction: column; height: 70vh; min-height: 400px; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .chat-messages:empty::before { content: 'Start a conversation with AI...'; color: #aaa; font-size: 14px; text-align: center; margin-top: 40px; }
+    .chat-msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+    .chat-msg.user { align-self: flex-end; background: #4285f4; color: #fff; border-bottom-right-radius: 4px; }
+    .chat-msg.ai { align-self: flex-start; background: #f0f0f0; color: #333; border-bottom-left-radius: 4px; }
+    .chat-msg.ai p { margin: 0 0 8px 0; }
+    .chat-msg.ai p:last-child { margin-bottom: 0; }
+    .chat-msg.ai ul, .chat-msg.ai ol { margin: 4px 0 8px 20px; }
+    .chat-msg.ai code { background: #e0e0e0; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+    .chat-msg.ai pre { background: #2d2d2d; color: #f8f8f2; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+    .chat-msg.ai pre code { background: none; color: inherit; padding: 0; }
+    .chat-msg.typing { color: #888; font-style: italic; }
+    .chat-input-bar { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e0e0e0; background: #fafafa; border-radius: 0 0 8px 8px; }
+    .chat-input-bar textarea { flex: 1; resize: none; min-height: 42px; max-height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: inherit; }
+    .chat-input-bar button { align-self: flex-end; padding: 10px 20px; white-space: nowrap; }
+    .chat-system-prompt { margin-bottom: 12px; }
+    .chat-system-prompt details summary { cursor: pointer; font-weight: 600; color: #4285f4; font-size: 14px; }
+    .chat-system-prompt textarea { min-height: 80px; font-size: 12px; margin-top: 8px; }
   </style>
 </head>
 <body>
-  <h1>United24 Media — Meta Generator</h1>
+  <div class="app-header">
+    <h1>United24 Media — Tools</h1>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" onclick="switchPage('meta')">Meta Generator</button>
+      <button class="nav-tab" onclick="switchPage('chat')">Chat With AI</button>
+    </nav>
+  </div>
+
+  <!-- ==================== META GENERATOR PAGE ==================== -->
+  <div id="page-meta" class="page active">
   <p class="subtitle">Paste an article, get keyword data, then choose your SEO title and description.</p>
 
   <div class="field">
@@ -242,6 +284,25 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
     <p class="step-desc">Pick the best description for your article</p>
     <div id="step4out"></div>
   </div>
+
+  </div><!-- /page-meta -->
+
+  <!-- ==================== CHAT WITH AI PAGE ==================== -->
+  <div id="page-chat" class="page">
+    <div class="chat-system-prompt">
+      <details>
+        <summary>Edit System Prompt</summary>
+        <textarea id="chatSystemPrompt">You are a helpful assistant for United24 Media journalists. You help with writing, research, translation, fact-checking, and editorial tasks related to news coverage. Be concise and factual.</textarea>
+      </details>
+    </div>
+    <div class="chat-container">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-bar">
+        <textarea id="chatInput" placeholder="Type your message..." onkeydown="chatKeydown(event)"></textarea>
+        <button id="chatSendBtn" onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+  </div><!-- /page-chat -->
 
   <script>
     const CONFIG = {
@@ -591,6 +652,104 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       if (state.selectedDesc === null || state.descConfirmed) return;
       state.descConfirmed = true;
       renderDescCards();
+    }
+
+    // ─── PAGE NAVIGATION ───
+    function switchPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelector(`.nav-tab[onclick="switchPage('${page}')"]`).classList.add('active');
+    }
+
+    // ─── CHAT WITH AI ───
+    let chatHistory = [];
+    let chatBusy = false;
+
+    function chatKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    }
+
+    function appendChatMessage(role, text) {
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = 'chat-msg ' + (role === 'user' ? 'user' : 'ai');
+      if (role === 'ai') {
+        div.innerHTML = formatAIResponse(text);
+      } else {
+        div.textContent = text;
+      }
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return div;
+    }
+
+    function formatAIResponse(text) {
+      // Basic markdown-like formatting
+      let html = text
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>');
+      // Convert line breaks to paragraphs (skip inside <pre>)
+      html = html.split(/\n{2,}/).map(block => {
+        if (block.startsWith('<pre>')) return block;
+        return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+      }).join('');
+      return html;
+    }
+
+    async function sendChatMessage() {
+      if (chatBusy) return;
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+      appendChatMessage('user', text);
+
+      chatHistory.push({ role: 'user', content: text });
+
+      chatBusy = true;
+      document.getElementById('chatSendBtn').disabled = true;
+
+      // Show typing indicator
+      const typingDiv = appendChatMessage('ai', 'Thinking...');
+      typingDiv.classList.add('typing');
+
+      try {
+        const systemPrompt = document.getElementById('chatSystemPrompt').value.trim();
+
+        // Build a single prompt from history for Gemini
+        let fullPrompt = '';
+        if (systemPrompt) {
+          fullPrompt += `<system>\n${systemPrompt}\n</system>\n\n`;
+        }
+        for (const msg of chatHistory) {
+          if (msg.role === 'user') {
+            fullPrompt += `<user>\n${msg.content}\n</user>\n\n`;
+          } else {
+            fullPrompt += `<assistant>\n${msg.content}\n</assistant>\n\n`;
+          }
+        }
+
+        const response = await callGemini(fullPrompt);
+        chatHistory.push({ role: 'assistant', content: response });
+
+        typingDiv.classList.remove('typing');
+        typingDiv.innerHTML = formatAIResponse(response);
+      } catch (e) {
+        typingDiv.classList.remove('typing');
+        typingDiv.innerHTML = `<p style="color:#d93025">Error: ${e.message}</p>`;
+      } finally {
+        chatBusy = false;
+        document.getElementById('chatSendBtn').disabled = false;
+        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+      }
     }
 
     // ─── MAIN START ───
