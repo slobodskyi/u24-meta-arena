@@ -188,12 +188,23 @@
      * 5. Open in new tab (_blank) so the reader doesn't lose the article
      */
     function discussWithAI(platform) {
-      const title = document.querySelector('.article-title').innerText;
+      // Dynamically capture article info from the page
+      const title = document.querySelector('.article-title')?.innerText
+        || document.querySelector('h1')?.innerText
+        || document.title;
 
-      // Use the canonical article URL (the real published URL, not the sample page URL)
-      const articleUrl = 'https://united24media.com/latest-news/ukraine-offers-japan-battle-tested-sea-drone-and-interceptor-tech-that-drove-russias-fleet-from-black-sea-16105';
+      // Try canonical link first, then og:url, then current page URL
+      const canonicalEl = document.querySelector('link[rel="canonical"]');
+      const ogUrlEl = document.querySelector('meta[property="og:url"]');
+      const articleUrl = canonicalEl?.href || ogUrlEl?.content || window.location.href;
 
-      const prompt = `Summarize the key facts from this UNITED24 Media article and explain the broader context. Base your answer on the article, not speculation: "${title}" ${articleUrl}`;
+      // Extract first ~300 chars of article body for context
+      const bodyEl = document.querySelector('.article-body') || document.querySelector('article');
+      const bodySnippet = bodyEl ? bodyEl.innerText.substring(0, 300).replace(/\s+/g, ' ').trim() + '...' : '';
+
+      const prompt = bodySnippet
+        ? `Read this UNITED24 Media article and help me understand it. Summarize the key facts, explain the broader geopolitical context, and note what makes this significant. Base your answer on the article content, not speculation.\n\nTitle: "${title}"\nURL: ${articleUrl}\n\nArticle excerpt: "${bodySnippet}"`
+        : `Read this UNITED24 Media article and help me understand it. Summarize the key facts, explain the broader geopolitical context, and note what makes this significant. Base your answer on the article content, not speculation.\n\nTitle: "${title}"\nURL: ${articleUrl}`;
 
       const encoded = encodeURIComponent(prompt);
 
@@ -206,9 +217,13 @@
 
       if (!targetUrl) return;
 
-      // Safety check: warn if URL exceeds safe length
+      // Safety check: if URL exceeds safe length, trim the snippet and retry
       if (targetUrl.length > 2000) {
-        console.warn(`AI discuss URL is ${targetUrl.length} chars (exceeds 2000 safe limit)`);
+        console.warn(`AI discuss URL is ${targetUrl.length} chars — falling back to short prompt`);
+        const shortPrompt = `Summarize and explain the broader context of this UNITED24 Media article: "${title}" ${articleUrl}`;
+        const shortUrl = urls[platform].split('?q=')[0] + '?q=' + encodeURIComponent(shortPrompt);
+        window.open(shortUrl, '_blank');
+        return;
       }
 
       window.open(targetUrl, '_blank');
