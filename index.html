@@ -52,8 +52,14 @@
     .option-card:hover { border-color: #4285f4; box-shadow: 0 2px 8px rgba(66,133,244,.15); }
     .option-card.selected { border-color: #34a853; background: #e8f5e9; }
     .option-card.confirmed { cursor: default; }
-    .option-card .option-label { font-weight: 700; color: #666; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .option-card .option-label { font-weight: 700; color: #666; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .option-card .chosen-badge { background: #34a853; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .option-card .provider-badge { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; color: #fff; }
+    .option-card .provider-badge.gemini { background: #4285f4; }
+    .option-card .provider-badge.openai { background: #10a37f; }
+    .option-card .provider-badge.claude { background: #cc785c; }
+    .option-card.confirmed.selected .provider-badge { box-shadow: 0 0 0 3px rgba(52,168,83,.3); }
+    .option-card.confirmed:not(.selected) { opacity: .65; }
 
     .meta-title { font-size: 15px; font-weight: 700; color: #1a0dab; }
     .meta-desc { font-size: 13px; color: #4d5156; margin-top: 2px; }
@@ -309,15 +315,29 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       proxyUrl: 'https://wild-forest-71d3.slobodskyi.workers.dev/'
     };
 
+    const PROVIDERS = ['gemini', 'openai', 'claude'];
+    const PROVIDER_LABEL = { gemini: 'Gemini', openai: 'OpenAI', claude: 'Claude' };
+
+    function shuffledProviders() {
+      const arr = PROVIDERS.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
     // State
     let state = {
       analysis: '',
       keywords: [],
       kwData: [],
       titles: [],
+      titleProviders: [],
       selectedTitle: null,
       titleConfirmed: false,
       descriptions: [],
+      descProviders: [],
       selectedDesc: null,
       descConfirmed: false
     };
@@ -504,6 +524,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         throw new Error('Gemini failed to generate 3 valid titles. Check console.');
       }
 
+      state.titleProviders = shuffledProviders();
       renderTitleCards();
       setStepState('s3n', 'done');
     }
@@ -517,11 +538,18 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         const isChosen = state.titleConfirmed && isSelected;
         const tLen = title.length;
         const tWarn = tLen < 50 || tLen > 80;
+        const provider = state.titleProviders[i];
+        const providerLabel = state.titleConfirmed
+          ? `<span class="provider-badge ${provider}">${PROVIDER_LABEL[provider]}</span>`
+          : '';
 
         html += `<div class="option-card${isSelected ? ' selected' : ''}${state.titleConfirmed ? ' confirmed' : ''}" onclick="selectTitle(${i})">
           <div class="option-label">
-            Option ${i + 1}
-            ${isChosen ? '<span class="chosen-badge">CHOSEN</span>' : ''}
+            <span>Option ${String.fromCharCode(65 + i)}</span>
+            <span style="display:flex;gap:6px;align-items:center">
+              ${isChosen ? '<span class="chosen-badge">WINNER</span>' : ''}
+              ${providerLabel}
+            </span>
           </div>
           <div class="meta-title">${title}</div>
           <div class="meta-chars"><span class="${tWarn ? 'char-warn' : ''}">${tLen} characters</span></div>
@@ -592,6 +620,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         throw new Error('Gemini failed to generate 3 valid descriptions. Check console.');
       }
 
+      state.descProviders = shuffledProviders();
       renderDescCards();
       setStepState('s4n', 'done');
     }
@@ -605,11 +634,18 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         const isChosen = state.descConfirmed && isSelected;
         const dLen = desc.length;
         const dWarn = dLen < 150 || dLen > 160;
+        const provider = state.descProviders[i];
+        const providerLabel = state.descConfirmed
+          ? `<span class="provider-badge ${provider}">${PROVIDER_LABEL[provider]}</span>`
+          : '';
 
         html += `<div class="option-card${isSelected ? ' selected' : ''}${state.descConfirmed ? ' confirmed' : ''}" onclick="selectDesc(${i})">
           <div class="option-label">
-            Option ${i + 1}
-            ${isChosen ? '<span class="chosen-badge">CHOSEN</span>' : ''}
+            <span>Option ${String.fromCharCode(65 + i)}</span>
+            <span style="display:flex;gap:6px;align-items:center">
+              ${isChosen ? '<span class="chosen-badge">WINNER</span>' : ''}
+              ${providerLabel}
+            </span>
           </div>
           <div class="meta-desc">${desc}</div>
           <div class="meta-chars"><span class="${dWarn ? 'char-warn' : ''}">${dLen} characters</span></div>
@@ -628,13 +664,15 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       if (state.descConfirmed) {
         const chosenTitle = state.titles[state.selectedTitle];
         const chosenDesc = state.descriptions[state.selectedDesc];
+        const titleProvider = state.titleProviders[state.selectedTitle];
+        const descProvider = state.descProviders[state.selectedDesc];
         html += `<div class="final-result">
           <h3>Your Final Meta Tags</h3>
           <div class="result-title">${chosenTitle}</div>
-          <div class="result-chars">${chosenTitle.length} characters</div>
+          <div class="result-chars">${chosenTitle.length} characters · <span class="provider-badge ${titleProvider}" style="padding:1px 8px;border-radius:8px;color:#fff;font-weight:700;font-size:11px">${PROVIDER_LABEL[titleProvider]}</span></div>
           <div style="margin-top:12px">
             <div class="result-desc">${chosenDesc}</div>
-            <div class="result-chars">${chosenDesc.length} characters</div>
+            <div class="result-chars">${chosenDesc.length} characters · <span class="provider-badge ${descProvider}" style="padding:1px 8px;border-radius:8px;color:#fff;font-weight:700;font-size:11px">${PROVIDER_LABEL[descProvider]}</span></div>
           </div>
         </div>`;
       }
@@ -767,9 +805,11 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         keywords: [],
         kwData: [],
         titles: [],
+        titleProviders: [],
         selectedTitle: null,
         titleConfirmed: false,
         descriptions: [],
+        descProviders: [],
         selectedDesc: null,
         descConfirmed: false
       };
