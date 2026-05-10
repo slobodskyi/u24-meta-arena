@@ -3,161 +3,167 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>U24 Media Tools</title>
+  <title>U24 Meta Generator</title>
   <style>
     :root {
       --bg: #fafafa;
       --surface: #fff;
-      --border: #ececec;
-      --text: #1a1a1a;
-      --text-muted: #6b7280;
-      --text-subtle: #9ca3af;
-      --primary: #4285f4;
-      --primary-hover: #3367d6;
-      --success: #34a853;
-      --warn: #ea8600;
-      --error: #d93025;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,.06);
-      --shadow-lg: 0 8px 24px rgba(0,0,0,.08);
+      --surface-2: #f5f5f5;
+      --border: #eaeaea;
+      --border-strong: #d4d4d4;
+      --text: #0a0a0a;
+      --text-muted: #666;
+      --text-subtle: #999;
+      --accent: #0070f3;
+      --success: #0070f3;
+      --success-soft: #e6f3ff;
+      --warn: #f5a623;
+      --error: #e00;
+      --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
-    h1 { margin-bottom: 8px; font-size: 28px; letter-spacing: -.02em; }
-    .subtitle { color: var(--text-muted); margin-bottom: 24px; font-size: 14px; }
-    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px; }
-    input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--surface); transition: border-color .15s, box-shadow .15s; }
-    input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(66,133,244,.12); }
-    textarea { min-height: 140px; resize: vertical; }
-    .field { margin-bottom: 16px; }
-    button { background: var(--primary); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s, transform .05s; font-family: inherit; }
-    button:hover { background: var(--primary-hover); }
+    html { background: var(--bg); }
+    body { font-family: var(--sans); color: var(--text); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+
+    .topbar { border-bottom: 1px solid var(--border); background: rgba(255,255,255,.85); backdrop-filter: saturate(180%) blur(8px); position: sticky; top: 0; z-index: 10; }
+    .topbar-inner { max-width: 880px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; letter-spacing: -.005em; }
+    .brand-mark { width: 22px; height: 22px; background: #0a0a0a; color: #fff; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; font-family: var(--mono); font-size: 11px; font-weight: 700; }
+    .brand-tag { font-family: var(--mono); font-size: 11px; color: var(--text-subtle); padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; }
+
+    main { max-width: 880px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .hero { margin-bottom: 28px; }
+    .hero h1 { font-size: 28px; letter-spacing: -.025em; font-weight: 700; margin-bottom: 8px; }
+    .hero p { color: var(--text-muted); font-size: 15px; max-width: 60ch; }
+
+    label { display: block; font-weight: 500; margin-bottom: 8px; font-size: 13px; color: var(--text); }
+    input, textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--surface); transition: border-color .15s, box-shadow .15s; line-height: 1.5; }
+    input:focus, textarea:focus { outline: none; border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,.06); }
+    textarea { min-height: 160px; resize: vertical; }
+    .field { margin-bottom: 14px; }
+
+    button { background: var(--text); color: #fff; border: 1px solid var(--text); padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background .12s, opacity .12s, transform .05s; font-family: inherit; }
+    button:hover { background: #262626; }
     button:active { transform: translateY(1px); }
     button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-    .btn-green { background: var(--success); }
-    .btn-green:hover { background: #2d9249; }
+    .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+    .btn-secondary:hover { background: var(--surface-2); }
+
     .error { color: var(--error); margin-top: 12px; font-size: 13px; }
-    details { margin-bottom: 12px; }
-    details summary { cursor: pointer; font-weight: 600; color: var(--primary); font-size: 13px; margin-bottom: 8px; user-select: none; }
-    details textarea { min-height: 200px; font-size: 12px; line-height: 1.5; }
 
-    .step { background: var(--surface); border-radius: 12px; padding: 24px; margin-top: 16px; display: none; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
-    .step h2 { margin-bottom: 4px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
-    .step .step-desc { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
-    .step-num { display: inline-flex; align-items: center; justify-content: center; background: #e5e7eb; color: var(--text-muted); width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700; margin-right: 10px; transition: all .2s; }
-    .step-num.done { background: var(--success); color: #fff; }
-    .step-num.active { background: var(--warn); color: #fff; }
+    details { margin-bottom: 10px; }
+    details summary { cursor: pointer; font-weight: 500; color: var(--text-muted); font-size: 12px; user-select: none; padding: 6px 0; display: inline-flex; align-items: center; gap: 6px; transition: color .12s; }
+    details summary:hover { color: var(--text); }
+    details summary::before { content: '›'; font-size: 14px; transition: transform .15s; display: inline-block; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details summary::-webkit-details-marker { display: none; }
+    details textarea { min-height: 200px; font-size: 12px; line-height: 1.5; font-family: var(--mono); margin-top: 6px; }
 
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #e5e7eb; border-top-color: var(--primary); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 8px; }
+    .prompts-group { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+    .prompts-group details { border-bottom: 1px solid var(--border); margin: 0; padding: 4px 0; }
+    .prompts-group details:last-child { border-bottom: none; }
+
+    .run-bar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+
+    /* Step cards */
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; margin-top: 14px; display: none; }
+    .step-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+    .step h2 { font-size: 15px; font-weight: 600; letter-spacing: -.005em; }
+    .step .step-desc { color: var(--text-subtle); font-size: 12px; margin-left: auto; font-family: var(--mono); }
+    .step-num { display: inline-flex; align-items: center; justify-content: center; background: var(--surface); color: var(--text-muted); border: 1px solid var(--border-strong); width: 22px; height: 22px; border-radius: 6px; font-family: var(--mono); font-size: 11px; font-weight: 600; transition: all .2s; flex-shrink: 0; }
+    .step-num.done { background: var(--text); color: #fff; border-color: var(--text); }
+    .step-num.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 1.5px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: -1px; margin-right: 8px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--text-muted); font-size: 13px; }
 
-    /* Keywords display */
-    .kw-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .kw-tag { background: #f3f4f6; color: #374151; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    /* Analysis blurb */
+    .analysis-blurb { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.55; border-left: 2px solid var(--border-strong); }
+
+    /* Keywords */
+    .kw-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .kw-tag { background: var(--surface); color: var(--text); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-family: var(--mono); border: 1px solid var(--border); }
 
     /* Keyword table */
-    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: #f9fafb; font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-    .badge-low { background: #e8f5e9; color: #2e7d32; }
-    .badge-med { background: #fff3e0; color: #e65100; }
-    .badge-high { background: #fce4ec; color: #c62828; }
+    th { font-weight: 500; color: var(--text-subtle); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding-bottom: 8px; }
+    td { font-family: var(--mono); font-size: 12px; }
+    td:first-child { font-family: var(--sans); font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; font-family: var(--mono); }
+    .badge-low { background: #e6f7ed; color: #0d8a4d; }
+    .badge-med { background: #fff7e6; color: #b76e00; }
+    .badge-high { background: #ffeaea; color: #c00; }
 
     /* Selection cards */
-    .option-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-    .option-card { position: relative; border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; cursor: pointer; transition: all .15s; background: var(--surface); }
-    .option-card:hover { border-color: #c7d2fe; box-shadow: var(--shadow-md); transform: translateY(-1px); }
-    .option-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(66,133,244,.12); }
-    .option-card.confirmed { cursor: default; transform: none; }
-    .option-card.confirmed:hover { transform: none; box-shadow: none; }
-    .option-card.confirmed.selected { border-color: var(--success); box-shadow: 0 0 0 3px rgba(52,168,83,.15); background: #f6fdf8; }
-    .option-card.confirmed.selected:hover { box-shadow: 0 0 0 3px rgba(52,168,83,.15); }
-    .option-card.confirmed:not(.selected) { opacity: .5; filter: grayscale(.4); }
-    .option-card .option-label { font-weight: 600; color: var(--text-subtle); margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .option-card .provider-badge { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #fff; letter-spacing: .02em; text-transform: none; }
+    .option-cards { display: flex; flex-direction: column; gap: 8px; }
+    .option-card { position: relative; border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; cursor: pointer; transition: border-color .12s, background .12s, box-shadow .12s, opacity .2s; background: var(--surface); }
+    .option-card:hover { border-color: var(--border-strong); }
+    .option-card.selected { border-color: var(--text); box-shadow: 0 0 0 3px rgba(0,0,0,.05); }
+    .option-card.confirmed { cursor: default; }
+    .option-card.confirmed:hover { border-color: var(--border); }
+    .option-card.confirmed.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,112,243,.1); background: var(--success-soft); }
+    .option-card.confirmed.selected:hover { border-color: var(--accent); }
+    .option-card.confirmed:not(.selected) { opacity: .45; filter: grayscale(.5); }
+    .option-card .option-label { font-weight: 500; color: var(--text-subtle); margin-bottom: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--mono); }
+    .option-card .provider-badge { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; color: #fff; font-family: var(--mono); letter-spacing: 0; text-transform: none; }
     .option-card .provider-badge.gemini { background: #4285f4; }
     .option-card .provider-badge.openai { background: #10a37f; }
     .option-card .provider-badge.claude { background: #cc785c; }
 
-    .meta-title { font-size: 16px; font-weight: 600; color: #1a0dab; line-height: 1.4; letter-spacing: -.005em; }
-    .meta-desc { font-size: 13px; color: #4d5156; margin-top: 2px; line-height: 1.5; }
-    .meta-chars { font-size: 11px; color: var(--text-subtle); margin-top: 8px; }
-    .char-warn { color: var(--error); font-weight: 600; }
+    .meta-title { font-size: 16px; font-weight: 500; color: #1a0dab; line-height: 1.4; letter-spacing: -.005em; }
+    .meta-desc { font-size: 14px; color: #4d5156; line-height: 1.5; }
+    .meta-chars { font-size: 11px; color: var(--text-subtle); margin-top: 8px; font-family: var(--mono); }
+    .char-warn { color: var(--error); font-weight: 500; }
 
-    .actions { margin-top: 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .info-text { color: var(--text-subtle); font-size: 13px; }
-    .success-text { color: var(--success); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
-    .success-text::before { content: '✓'; font-size: 14px; }
+    .actions { margin-top: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .info-text { color: var(--text-subtle); font-size: 12px; font-family: var(--mono); }
+    .success-text { color: var(--text); font-weight: 500; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+    .success-text::before { content: '✓'; color: var(--accent); font-weight: 700; }
 
     /* Final result */
-    .final-result { background: linear-gradient(135deg, #f6fdf8 0%, #ffffff 100%); border: 1px solid #d1f0d9; border-radius: 12px; padding: 20px; margin-top: 20px; box-shadow: var(--shadow-sm); }
-    .final-result h3 { font-size: 12px; margin-bottom: 16px; color: var(--success); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
-    .final-result .result-block { padding: 12px 0; }
-    .final-result .result-block + .result-block { border-top: 1px solid #e5f3ea; margin-top: 4px; }
-    .final-result .result-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-subtle); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
-    .final-result .result-meta .provider-tag { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; color: #fff; letter-spacing: .02em; text-transform: none; }
-    .final-result .result-meta .provider-tag.gemini { background: #4285f4; }
-    .final-result .result-meta .provider-tag.openai { background: #10a37f; }
-    .final-result .result-meta .provider-tag.claude { background: #cc785c; }
-    .final-result .result-title { font-size: 18px; font-weight: 600; color: #1a0dab; line-height: 1.4; letter-spacing: -.01em; }
-    .final-result .result-desc { font-size: 14px; color: #4d5156; line-height: 1.5; }
-    .final-result .result-chars { font-size: 11px; color: var(--text-subtle); margin-top: 6px; }
-
-    /* Navigation */
-    .app-header { margin-bottom: 24px; }
-    .app-header h1 { margin-bottom: 12px; }
-    .nav-tabs { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; }
-    .nav-tab { padding: 10px 24px; font-size: 14px; font-weight: 600; color: #666; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
-    .nav-tab:hover { color: #4285f4; }
-    .nav-tab.active { color: #4285f4; border-bottom-color: #4285f4; }
-
-    /* Page containers */
-    .page { display: none; }
-    .page.active { display: block; }
-
-    /* Chat With AI */
-    .chat-container { background: #fff; border-radius: 8px; display: flex; flex-direction: column; height: 70vh; min-height: 400px; }
-    .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-    .chat-messages:empty::before { content: 'Start a conversation with AI...'; color: #aaa; font-size: 14px; text-align: center; margin-top: 40px; }
-    .chat-msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
-    .chat-msg.user { align-self: flex-end; background: #4285f4; color: #fff; border-bottom-right-radius: 4px; }
-    .chat-msg.ai { align-self: flex-start; background: #f0f0f0; color: #333; border-bottom-left-radius: 4px; }
-    .chat-msg.ai p { margin: 0 0 8px 0; }
-    .chat-msg.ai p:last-child { margin-bottom: 0; }
-    .chat-msg.ai ul, .chat-msg.ai ol { margin: 4px 0 8px 20px; }
-    .chat-msg.ai code { background: #e0e0e0; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
-    .chat-msg.ai pre { background: #2d2d2d; color: #f8f8f2; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
-    .chat-msg.ai pre code { background: none; color: inherit; padding: 0; }
-    .chat-msg.typing { color: #888; font-style: italic; }
-    .chat-input-bar { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e0e0e0; background: #fafafa; border-radius: 0 0 8px 8px; }
-    .chat-input-bar textarea { flex: 1; resize: none; min-height: 42px; max-height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: inherit; }
-    .chat-input-bar button { align-self: flex-end; padding: 10px 20px; white-space: nowrap; }
-    .chat-system-prompt { margin-bottom: 12px; }
-    .chat-system-prompt details summary { cursor: pointer; font-weight: 600; color: #4285f4; font-size: 14px; }
-    .chat-system-prompt textarea { min-height: 80px; font-size: 12px; margin-top: 8px; }
+    .final-result { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; margin-top: 16px; }
+    .final-result h3 { font-size: 11px; margin-bottom: 18px; color: var(--text-subtle); text-transform: uppercase; letter-spacing: .08em; font-weight: 500; font-family: var(--mono); }
+    .final-result .result-block + .result-block { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; }
+    .final-result .result-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-subtle); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .08em; font-weight: 500; font-family: var(--mono); }
+    .final-result .provider-tag { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 500; color: #fff; font-family: var(--mono); letter-spacing: 0; text-transform: none; }
+    .final-result .provider-tag.gemini { background: #4285f4; }
+    .final-result .provider-tag.openai { background: #10a37f; }
+    .final-result .provider-tag.claude { background: #cc785c; }
+    .final-result .result-title { font-size: 18px; font-weight: 500; color: #1a0dab; line-height: 1.4; letter-spacing: -.01em; }
+    .final-result .result-desc { font-size: 14px; color: #4d5156; line-height: 1.55; }
+    .final-result .result-chars { font-size: 11px; color: var(--text-subtle); margin-top: 6px; font-family: var(--mono); }
   </style>
 </head>
 <body>
-  <div class="app-header">
-    <h1>United24 Media — Tools</h1>
-    <nav class="nav-tabs">
-      <button class="nav-tab active" onclick="switchPage('meta')">Meta Generator</button>
-      <button class="nav-tab" onclick="switchPage('chat')">Chat With AI</button>
-    </nav>
-  </div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">U24</span>
+        <span>Meta Generator</span>
+      </div>
+      <span class="brand-tag">v1.0 · gemini</span>
+    </div>
+  </header>
 
-  <!-- ==================== META GENERATOR PAGE ==================== -->
-  <div id="page-meta" class="page active">
-  <p class="subtitle">Paste an article, get keyword data, then choose your SEO title and description.</p>
+  <main>
+    <section class="hero">
+      <h1>SEO Meta Generator</h1>
+      <p>Paste an article, get keyword data, then choose your SEO title and description.</p>
+    </section>
 
   <div class="field">
     <label>Article Text</label>
     <textarea id="content" placeholder="Paste your full article text here..."></textarea>
   </div>
 
+  <div class="prompts-group">
   <details>
-    <summary>Edit Keyword Extraction Prompt</summary>
+    <summary>Keyword Extraction Prompt</summary>
     <textarea id="kwPrompt"><role>
 You are a senior SEO keyword researcher for an international news organization covering the Russia-Ukraine war.
 </role>
@@ -199,7 +205,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
   </details>
 
   <details>
-    <summary>Edit Title Generation Prompt</summary>
+    <summary>Title Generation Prompt</summary>
     <textarea id="titlePrompt"><role>
 You are a senior SEO editor for United24 Media, an international news organization covering the Russia-Ukraine war.
 </role>
@@ -254,7 +260,7 @@ PRIMARY keyword: "unmanned aerial systems"
   </details>
 
   <details>
-    <summary>Edit Description Generation Prompt</summary>
+    <summary>Description Generation Prompt</summary>
     <textarea id="descPrompt"><role>
 You are a senior SEO editor for United24 Media, an international news organization covering the Russia-Ukraine war.
 </role>
@@ -286,56 +292,51 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
 ]
 </output_format></textarea>
   </details>
+  </div><!-- /prompts-group -->
 
-  <button id="runBtn" onclick="startGeneration()">Generate Meta</button>
+  <div class="run-bar">
+    <button id="runBtn" onclick="startGeneration()">Generate Meta</button>
+    <span class="info-text">Runs all 4 steps</span>
+  </div>
   <div id="error" class="error"></div>
 
-  <!-- Step 1: Keyword extraction (auto) -->
   <div class="step" id="step1">
-    <h2><span class="step-num" id="s1n">1</span> Keyword Extraction</h2>
-    <p class="step-desc">Gemini extracts keywords from the article</p>
+    <div class="step-head">
+      <span class="step-num" id="s1n">1</span>
+      <h2>Keyword Extraction</h2>
+      <span class="step-desc">gemini</span>
+    </div>
     <div id="step1out"></div>
   </div>
 
-  <!-- Step 2: DataForSEO -->
   <div class="step" id="step2">
-    <h2><span class="step-num" id="s2n">2</span> Keyword Volume Data (DataForSEO)</h2>
-    <p class="step-desc">Getting real search volumes for extracted keywords</p>
+    <div class="step-head">
+      <span class="step-num" id="s2n">2</span>
+      <h2>Keyword Volume</h2>
+      <span class="step-desc">dataforseo</span>
+    </div>
     <div id="step2out"></div>
   </div>
 
-  <!-- Step 3: Title selection -->
   <div class="step" id="step3">
-    <h2><span class="step-num" id="s3n">3</span> Choose SEO Title</h2>
-    <p class="step-desc">Pick the best title for your article</p>
+    <div class="step-head">
+      <span class="step-num" id="s3n">3</span>
+      <h2>Choose SEO Title</h2>
+      <span class="step-desc">arena · 3 options</span>
+    </div>
     <div id="step3out"></div>
   </div>
 
-  <!-- Step 4: Description selection -->
   <div class="step" id="step4">
-    <h2><span class="step-num" id="s4n">4</span> Choose SEO Description</h2>
-    <p class="step-desc">Pick the best description for your article</p>
+    <div class="step-head">
+      <span class="step-num" id="s4n">4</span>
+      <h2>Choose SEO Description</h2>
+      <span class="step-desc">arena · 3 options</span>
+    </div>
     <div id="step4out"></div>
   </div>
 
-  </div><!-- /page-meta -->
-
-  <!-- ==================== CHAT WITH AI PAGE ==================== -->
-  <div id="page-chat" class="page">
-    <div class="chat-system-prompt">
-      <details>
-        <summary>Edit System Prompt</summary>
-        <textarea id="chatSystemPrompt">You are a helpful assistant for United24 Media journalists. You help with writing, research, translation, fact-checking, and editorial tasks related to news coverage. Be concise and factual.</textarea>
-      </details>
-    </div>
-    <div class="chat-container">
-      <div class="chat-messages" id="chatMessages"></div>
-      <div class="chat-input-bar">
-        <textarea id="chatInput" placeholder="Type your message..." onkeydown="chatKeydown(event)"></textarea>
-        <button id="chatSendBtn" onclick="sendChatMessage()">Send</button>
-      </div>
-    </div>
-  </div><!-- /page-chat -->
+  </main>
 
   <script>
     const CONFIG = {
@@ -419,7 +420,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       show('step1');
       setStepState('s1n', 'active');
       const out = document.getElementById('step1out');
-      out.innerHTML = '<span class="spinner"></span> Gemini is extracting keywords...';
+      out.innerHTML = '<span class="loading-text"><span class="spinner"></span>Extracting keywords...</span>';
 
       const kwPrompt = document.getElementById('kwPrompt').value.trim();
       const fullPrompt = `${kwPrompt}\n\n<article>\n${content.substring(0, 10000)}\n</article>`;
@@ -450,7 +451,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
 
       let html = '';
       if (analysis) {
-        html += `<p style="font-size:13px;color:#555;margin-bottom:8px;font-style:italic">${analysis}</p>`;
+        html += `<div class="analysis-blurb">${analysis}</div>`;
       }
       html += '<div class="kw-list">' + kws.map(k => `<span class="kw-tag">${k}</span>`).join('') + '</div>';
       out.innerHTML = html;
@@ -462,7 +463,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       show('step2');
       setStepState('s2n', 'active');
       const out = document.getElementById('step2out');
-      out.innerHTML = `<span class="spinner"></span> Getting volume data for ${state.keywords.length} keywords...`;
+      out.innerHTML = `<span class="loading-text"><span class="spinner"></span>Fetching volumes for ${state.keywords.length} keywords...</span>`;
 
       try {
         let allKw = [];
@@ -504,7 +505,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
           tableHtml += '</table>';
           out.innerHTML = tableHtml;
         } else {
-          out.innerHTML = '<p style="color:#888">No volume data available. Proceeding with keywords only.</p>';
+          out.innerHTML = '<p class="info-text">No volume data available. Proceeding with keywords only.</p>';
         }
 
         setStepState('s2n', 'done');
@@ -520,7 +521,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       show('step3');
       setStepState('s3n', 'active');
       const out = document.getElementById('step3out');
-      out.innerHTML = '<span class="spinner"></span> Gemini is generating SEO titles...';
+      out.innerHTML = '<span class="loading-text"><span class="spinner"></span>Generating titles...</span>';
 
       const titlePromptTemplate = document.getElementById('titlePrompt').value.trim();
 
@@ -582,9 +583,9 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       html += '</div>';
       html += `<div class="actions">
         ${!state.titleConfirmed ?
-          `<button onclick="confirmTitle()" class="btn-green" ${state.selectedTitle === null ? 'disabled' : ''}>Confirm Title</button>
-          <span class="info-text">Select your preferred title</span>` :
-          `<span class="success-text">Title confirmed!</span>`}
+          `<button onclick="confirmTitle()" ${state.selectedTitle === null ? 'disabled' : ''}>Confirm Title</button>
+          <span class="info-text">${state.selectedTitle === null ? 'Pick one to continue' : 'Reveals the AI provider'}</span>` :
+          `<span class="success-text">Title confirmed</span>`}
       </div>`;
 
       out.innerHTML = html;
@@ -611,7 +612,7 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       show('step4');
       setStepState('s4n', 'active');
       const out = document.getElementById('step4out');
-      out.innerHTML = '<span class="spinner"></span> Gemini is generating SEO descriptions...';
+      out.innerHTML = '<span class="loading-text"><span class="spinner"></span>Generating descriptions...</span>';
 
       const descPromptTemplate = document.getElementById('descPrompt').value.trim();
       const chosenTitle = state.titles[state.selectedTitle];
@@ -674,9 +675,9 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       html += '</div>';
       html += `<div class="actions">
         ${!state.descConfirmed ?
-          `<button onclick="confirmDesc()" class="btn-green" ${state.selectedDesc === null ? 'disabled' : ''}>Confirm Description</button>
-          <span class="info-text">Select your preferred description</span>` :
-          `<span class="success-text">Description confirmed!</span>`}
+          `<button onclick="confirmDesc()" ${state.selectedDesc === null ? 'disabled' : ''}>Confirm Description</button>
+          <span class="info-text">${state.selectedDesc === null ? 'Pick one to continue' : 'Reveals the AI provider'}</span>` :
+          `<span class="success-text">Description confirmed</span>`}
       </div>`;
 
       // Show final result if both confirmed
@@ -686,14 +687,14 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
         const titleProvider = state.titleProviders[state.selectedTitle];
         const descProvider = state.descProviders[state.selectedDesc];
         html += `<div class="final-result">
-          <h3>Your Final Meta Tags</h3>
+          <h3>Final Meta Tags</h3>
           <div class="result-block">
-            <div class="result-meta">Title <span class="provider-tag ${titleProvider}">${PROVIDER_LABEL[titleProvider]}</span></div>
+            <div class="result-meta"><span>Title</span><span class="provider-tag ${titleProvider}">${PROVIDER_LABEL[titleProvider]}</span></div>
             <div class="result-title">${chosenTitle}</div>
             <div class="result-chars">${chosenTitle.length} characters</div>
           </div>
           <div class="result-block">
-            <div class="result-meta">Description <span class="provider-tag ${descProvider}">${PROVIDER_LABEL[descProvider]}</span></div>
+            <div class="result-meta"><span>Description</span><span class="provider-tag ${descProvider}">${PROVIDER_LABEL[descProvider]}</span></div>
             <div class="result-desc">${chosenDesc}</div>
             <div class="result-chars">${chosenDesc.length} characters</div>
           </div>
@@ -713,104 +714,6 @@ Respond with valid JSON only. No markdown, no text outside the JSON.
       if (state.selectedDesc === null || state.descConfirmed) return;
       state.descConfirmed = true;
       renderDescCards();
-    }
-
-    // ─── PAGE NAVIGATION ───
-    function switchPage(page) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      document.getElementById('page-' + page).classList.add('active');
-      document.querySelector(`.nav-tab[onclick="switchPage('${page}')"]`).classList.add('active');
-    }
-
-    // ─── CHAT WITH AI ───
-    let chatHistory = [];
-    let chatBusy = false;
-
-    function chatKeydown(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendChatMessage();
-      }
-    }
-
-    function appendChatMessage(role, text) {
-      const container = document.getElementById('chatMessages');
-      const div = document.createElement('div');
-      div.className = 'chat-msg ' + (role === 'user' ? 'user' : 'ai');
-      if (role === 'ai') {
-        div.innerHTML = formatAIResponse(text);
-      } else {
-        div.textContent = text;
-      }
-      container.appendChild(div);
-      container.scrollTop = container.scrollHeight;
-      return div;
-    }
-
-    function formatAIResponse(text) {
-      // Basic markdown-like formatting
-      let html = text
-        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>');
-      // Convert line breaks to paragraphs (skip inside <pre>)
-      html = html.split(/\n{2,}/).map(block => {
-        if (block.startsWith('<pre>')) return block;
-        return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
-      }).join('');
-      return html;
-    }
-
-    async function sendChatMessage() {
-      if (chatBusy) return;
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      input.value = '';
-      input.style.height = 'auto';
-      appendChatMessage('user', text);
-
-      chatHistory.push({ role: 'user', content: text });
-
-      chatBusy = true;
-      document.getElementById('chatSendBtn').disabled = true;
-
-      // Show typing indicator
-      const typingDiv = appendChatMessage('ai', 'Thinking...');
-      typingDiv.classList.add('typing');
-
-      try {
-        const systemPrompt = document.getElementById('chatSystemPrompt').value.trim();
-
-        // Build a single prompt from history for Gemini
-        let fullPrompt = '';
-        if (systemPrompt) {
-          fullPrompt += `<system>\n${systemPrompt}\n</system>\n\n`;
-        }
-        for (const msg of chatHistory) {
-          if (msg.role === 'user') {
-            fullPrompt += `<user>\n${msg.content}\n</user>\n\n`;
-          } else {
-            fullPrompt += `<assistant>\n${msg.content}\n</assistant>\n\n`;
-          }
-        }
-
-        const response = await callGemini(fullPrompt);
-        chatHistory.push({ role: 'assistant', content: response });
-
-        typingDiv.classList.remove('typing');
-        typingDiv.innerHTML = formatAIResponse(response);
-      } catch (e) {
-        typingDiv.classList.remove('typing');
-        typingDiv.innerHTML = `<p style="color:#d93025">Error: ${e.message}</p>`;
-      } finally {
-        chatBusy = false;
-        document.getElementById('chatSendBtn').disabled = false;
-        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
-      }
     }
 
     // ─── MAIN START ───
