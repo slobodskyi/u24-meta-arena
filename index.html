@@ -28,8 +28,9 @@
 
     .topbar { border-bottom: 1px solid var(--border); background: rgba(255,255,255,.85); backdrop-filter: saturate(180%) blur(8px); position: sticky; top: 0; z-index: 10; }
     .topbar-inner { max-width: 880px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; letter-spacing: -.005em; }
-    .brand-mark { width: 22px; height: 22px; background: #0a0a0a; color: #fff; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; font-family: var(--mono); font-size: 11px; font-weight: 700; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 13px; color: var(--text-muted); }
+    .brand-logo { height: 22px; width: auto; display: block; }
+    .brand-divider { width: 1px; height: 18px; background: var(--border); }
     .brand-tag { font-family: var(--mono); font-size: 11px; color: var(--text-subtle); padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; }
 
     main { max-width: 880px; margin: 0 auto; padding: 32px 24px 80px; }
@@ -143,10 +144,11 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <span class="brand-mark">U24</span>
+        <img class="brand-logo" src="u24media-logo-dark.png" alt="United24 Media">
+        <span class="brand-divider"></span>
         <span>Meta Generator</span>
       </div>
-      <span class="brand-tag">v1.0 · gemini</span>
+      <span class="brand-tag">v1.7</span>
     </div>
   </header>
 
